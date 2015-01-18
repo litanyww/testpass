@@ -1,0 +1,53 @@
+Test App Notes
+==============
+
+ - When running tests, the tester is presented with a series of steps, each of
+   which may be highlighted as 'current', and/or marked as 'done'.  Each step
+   may also be 'failed'.
+
+ - When running tests from the Android/iPhone app, configuration is
+   deliberately limited.  Any configuration would be expected to happen on a
+   master account.
+
+ - The tester logs into their app using Google or Facebook credentials.
+   Previously they should have logged into the test web site using these same
+   credentials, and in this way they will automatically be assigned the correct
+   test cases in the approriate test pass.
+
+ - Each test step has a set of pre-requisite conditions, and a list of
+   conditions that test will modify.  A test step need not modify any
+   conditions, and it need not have any prerequisites.  These conditions take
+   the form of arbitrary key/value pairs.  Examples might be:
+
+    * OnAccess = off
+    * OnAccess = on
+    * ProductInstalled = <unset>
+    * QuarantineEmpty = no
+  
+  - One condition value which may be set and queried will be equivalent to
+    'unset'; as indicated above.
+ 
+  - Each test step includes a 'difficulty' value; there may be a number of
+    test steps all of which have equivalent pre-conditions and outcomes, and
+    while all may be expected to be executed, one of these steps may need to be
+    executed more than once in order to set up the right conditions for
+    another test step.  This value helps to select the least expensive step
+    which may be expected to simply change conditions
+
+  - Each test step may include a flag indicating that it only exists to change
+    the condition flags.  Such a test step is only included in a test pass if
+    conditions need to be prepared for another test step.  Since any test step
+    can set multiple conditions, this must be independent of the 'difficulty'
+    value, and non-test steps may exist which perform the same task.  Obviously
+    of two non-test tasks which modify the same conditions, only the least
+    expensive will ever be executed.
+
+  - Each test case may have arbitrary tags associated with them.  These are
+    used to select steps which will be used to generate a suiteable test pass.
+
+  - A test step will always have a manual description of the step necessary to
+    perform the test; but may also be accompanied by automation instructions.
+    How these automation steps will be executed is not known at this time, but
+    will likely require a small test app running on the target system.  Where
+    the test system is unable to execute a step automatically, the manual step
+    will be performed instead.

@@ -1,0 +1,6 @@
+.*.swp
+gtest-1.7.0.zip
+gtest-1.7.0
+objs
+tests
+.ycm_extra_conf.pyc

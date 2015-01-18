@@ -1,0 +1,54 @@
+I have attributes, and operations.  These are deliberately primative, with the intention that they are members of other more complex objects.
+
+I'm considering that I need at 'TestStep' class, which represents a test step.
+That item has an 'Operation' object, which means it has a list of dependencies
+as well as the ability to change attributes.  In addition, it needs test
+instructions as well as metrics to highlight the cost of applying this item.
+
+Each TestStep may or may not be required for a test pass.  I need multiple
+lists of TestSteps; there's a list of available TestStep objects, as well as a
+list of required TestSteps.  Each time a TestStep is used from the required
+list it is removed.
+
+Separate the TestSteps into ones three lists; one for operations which make no
+changes, and the other for required operations which make changes, and a third
+which simply lists all operations which make changes.
+
+I need a TestChain; an ordered list of operations.  Run through the list of
+required 'no-changes' operations, and append any to the TestChain which match.
+
+Once no more can be appended, try the same with the 'changes' TestSteps, but
+this time stop when one is matched.  Then try each of the 'no-changes' steps.
+If none of the 'no-changes' steps is applicable, we should try a different
+'changes' TestStep.  Transfer the used 'changes' TestStep to the non-required
+list.
+
+If none of the TestSteps work, then try one of the 'changes' which are not on
+the 'required' list.  The objective is to consume items from the 'no-changes'
+list.
+
+If we run out of 'no-changes' steps which can be executed after one test step,
+we're going to want to throw in a required 'changes' TestStep, and then go back
+to trying a change/no-change sequence.
+
+Eventually we may end up at a point where none of the required 'no-change' and
+none of the 'changes' items fit.  In this case, run through each of the
+no-longer-required changes to see if we can find a required changes which fits.
+
+-----
+
+Mind you...
+
+Given the current list of attributes, and the requirement for one of the
+candidates, we can generate a list of desired add/remove operations.
+
+We can use that list to find operations which fulfil each change.  Obviously we
+want changes which themselves have suitable dependencies.  If we fall back to
+using this technique, then we're going to want to select whichever sequence
+provides the cheapest cost.
+
+The advantage of this approach is that we can construct arbitrarily long chains
+of operations which are needed to get the system into the state we need.
+
+For each attribute to change, we may have multiple TestSteps with matching
+dependencies.  Select the cheapest at each turn.

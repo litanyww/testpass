@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- :vim: set ts=4 sw=4 et: -->
+
+<!--
+The following must be configured:
+  - dirs/installer: Location of the installers
+  - dirs/samples: Location of virus samples encoded with xxd
+  - dirs/threats: Location of temporary folder into which virus samples will be written
+
+The following happens when composing a test pass with tags 'onaccess' and 'opm-sa'
+  - Write Eicar to disk
+  - Install opm-sa
+  - OnAccess scanner blocks EICAR
+  - Clean infected file using Quarantine Manager
+  - Uninstall SAV for Mac
+
+If the tags are instead 'onaccess' and 'sec'
+  - Write Eicar to disk
+  - Install SAV for Mac managed by SEC
+  - OnAccess scanner blocks EICAR
+  - Clean infected file using Quarantine Manager
+  - Uninstall SAV for Mac
+
+We can't write eicar to disk while the on-access scanner is active, so we provide steps which can enable and disable
+it; however for this simplified set of tests it is cheapest to deposit the eicar file before the on-access scanner is
+even installed, and so the 'Enable on-access scanner' and 'Disable on-access scanner' are not needed.
+-->
+
+<steps>
+    <step summary="OnAccess scanner blocks EICAR">
+        <difficulty>3</difficulty>
+        <description>
+            An attempt is made to access a threat using normal file system operations.  It will be blocked by the
+            on-access scanner
+        </description>
+        <tags>
+            <!--
+            tags provide a way to decide which tests need to be selected.  For example, all tests tagged with
+            'onaccess' can be included in one go, thus making it easy to test functionality related to on-access
+            scanning.
+            -->
+            <tag name="onaccess"/>
+        </tags>
+        <prerequisites>
+            <condition name="productInstalled" exists="true"/>
+            <condition name="onaccess">enabled</condition> <!-- condition must be precisely equal to 'enabled' -->
+            <condition name="eicar" exists="true"/> <!-- any value will do -->
+            <condition name="autocleanup" exists="false"/> <!-- value must not exist -->
+            <condition name="exclusions/onaccess" exists="false"/>
+        </prerequisites>
+        <manual>
+            Attempt to access the file &apos;<prerequisite name="eicar"/>&apos; using the Filer or a terminal shell.
+            Access will be denied and the file will be added to the quarantine, but will not be automatically cleaned
+            up.
+        <manual>
+        <automated type="bash">
+            if shasum <prerequisite name="eicar"/>; then echo "Unexpected access to eicar"; exit 1; fi;
+        </automated>
+        <changes>
+            <condition name="quarantine/path"><prerequisite name="eicar"/><condition>
+            <condition name="quarantine/threat">eicar<condition>
+        </changes>
+    </step>
+
+    <step summary="Clean infected file using Quarantine Manager">
+        <difficulty>3</difficulty>
+        <description>
+            Successfully clean up an infected file using the Quarantine Manager
+        </description>
+        <tags>
+            <tag name="onaccess"/>
+        </tags>
+        <prerequisites>
+            <condition name="quarantine/path" exists="true"/>
+            <condition name="quarantine/threat" exists="eicar"/>
+            <condition name="productInstalled" exists="true"/>
+        </prerequisites>
+        <manual>
+            Open the Quarantine Manager.  In the list, select the <prerequisite name="quarantine/threat"/>.  Open the
+            details section and make sure the path matches <prerequisite name="quarantine/path"/>.  If the 'Cleanup'
+            button is greyed out, click the padlock and provide your administrator credentials to unlock.  Click the
+            'Cleanup' button.  On the confirmation dialog which pops up, select 'cleanup'.<p/>
+
+            After a few seconds the entry is removed from the Quarantine list, and the file is no longer present at the
+            location <prerequisite name="quarantine/path"/>.
+        </manual>
+        <changes>
+            <condition name="quarantine/path"/>
+            <condition name="quarantine/threat"/>
+        </changes>
+    </step>
+
+    <step summary="Write Eicar to disk">
+        <difficulty>1</difficulty>
+        <description>
+            Put a copy of Eicar on the disk
+        </description>
+        <prerequisites>
+            <condition name="dirs/samples" exists="true">
+            <condition name="dirs/threats" exists="true">
+            <condition name="onaccess" comparison="notEquals">enabled</condition> <!-- we have to disable the on-access scanner to write the eicar file -->
+        </prerequisites>
+        <manual>
+            Place a copy of eicar.com at <prerequisite name="dirs/threats">/eicar.com.
+        </manual>
+        <automated type="bash">
+            xxd -r <prerequisite name="dirs/samples"/>/eicar.xxd <prerequsite name="dirs/threats"/>/eicar.com
+        </automated>
+        <changes>
+            <condition name="eicar"><prerequisite name="dirs/threats"/>/eicar.com</condition>
+        </changes>
+    </step>
+
+    <step summary="Disable on-access scanner">
+        <difficulty>3</difficulty>
+        <description>
+            Disable the on-access scanner
+        </description>
+        <prerequisites>
+            <condition name="onaccess">enabled</condition>
+        </prerequisite>
+        <manual>
+            Click on the shield on the menu bar, and choose &quot;Preferences&quot;.  On the on-access tab, disable the
+            on-access scanner
+        </manual>
+        <changes>
+            <condition name="onaccess">disabled</condition>
+        </changes>
+    </step>
+
+    <step summary="Enable on-access scanner">
+        <difficulty>3</difficulty>
+        <description>
+            Enabble the on-access scanner
+        </description>
+        <prerequisites>
+            <condition name="onaccess">disabled</condition>
+        </prerequisite>
+        <manual>
+            Click on the shield on the menu bar, and choose &quot;Preferences&quot;.  On the on-access tab, enable the
+            on-access scanner
+        </manual>
+        <changes>
+            <condition name="onaccess">enabled</condition>
+        </changes>
+    </step>
+
+    <step summary="Install opm-sa">
+        <difficulty>20</difficulty>
+        <description>
+            Install SAV for Mac using the opm-sa installer
+        </description>
+        <tags>
+            <tag name="opm-sa"/>
+        </tags>
+        <prerequisites>
+            <condition name="productInstalled" exists="false"/>
+            <condition name="dirs/installers" exists="true">
+        </prerequisites>
+        <manual>
+            Extract the installer from <prerequisite name="dirs/installers"/>/opm-sa/SophosInstaller.zip to a temporary
+            location and run it.<p/>
+            Read the fine welcome screen, peruse the licence notes and accept them, and enter your password to install the product.
+        </manual>
+        <changes>
+            <condition name="productInstalled">opm-sa</condition>
+            <condition name="onaccess">enabled</condition>
+        </changes>
+    </step>
+    
+    <step summary="Install SAV for Mac managed by SEC">
+        <difficulty>21</difficulty>
+        <description>
+            Install SAV for Mac which will be managed by SEC
+        </description>
+        <tags>
+            <tag name="sec"/>
+        </tags>
+        <prerequisites>
+            <condition name="productInstalled" exists="false"/>
+        </prerequisites>
+        <manual>
+            If there's an existing entry for the endpoint in SEC, move it to the &quot;Uncategorized&quot; group.
+            In SEC, check the 'Bootstrap Locations' option from the 'View' menu to determine the correct network
+            location from which to obtain the installer.  Mount this location and copy the installer app along with the
+            companion directory to a temporary location, and run the installer.<p/>
+            Read the fine welcome screen, peruse the licence notes and accept them, and enter your password to install the product.
+            <p>
+        </manual>
+        <changes>
+            <condition name="productInstalled">sec</condition>
+            <condition name="onaccess">enabled</condition>
+        </changes>
+    </step>
+
+    <step summary="Uninstall SAV for Mac">
+        <difficulty>18</difficulty>
+        <description>
+            Uninstall SAV for Mac
+        </description>
+        <tags>
+            <tag name="install"/>
+            <tag name="opm-sa"/>
+            <tag name="saas"/>
+            <tag name="sec"/>
+        </tags>
+        <prerequisites>
+            <condition name="productInstalled" exists="true"/>
+            <condition name="tamperProductionPassword" exists="false"/> <!-- These instructions aren't valid if the tamper protection password is set -->
+        </prerequisites>
+        <manual>
+            Run the uninstaller in &quot;/Library/Sophos/Remove Sophos Anti-Virus.app&quot;.  Check that the text
+            presented is sensible, then continue.  You will be prompted for your Administator password, which you need
+            to enter to complete the uninstallation.<p/>
+
+            Once the uninstaller is finished, confirm that there are no files in:<p/>
+            <ul>
+                <li>/Library/Sophos</li>
+                <li>/Library/Preferences/com.sophos*</li>
+                <li>/Library/Caches/com.sophos*</li>
+            </ul>
+        </manual>
+        <changes>
+            <condition name="productInstaller"/>
+        </changes>
+    </step>
+
+</steps>
