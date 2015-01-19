@@ -179,16 +179,23 @@ namespace WW
                 return result;
             }
 
-            Attributes missingFrom(const Attributes& attributes)
+            Attributes differences(const Attributes& attributes)
             {
                 Attributes result;
-                const_iterator end = m_contents.end();
-                const_iterator notfound = attributes.end();
-                for (const_iterator it = m_contents.begin(); it != end; ++it)
+                const_iterator end = attributes.end();
+                const_iterator notfound = m_contents.end();
+                for (const_iterator it = attributes.begin(); it != end; ++it)
                 {
-                    if (attributes.find(*it) == notfound)
+                    bool forbidden = it->isForbidden();
+                    const_iterator match = m_contents.find(*it);
+                    if (match == notfound) {
+                        if (!forbidden) {
+                            result.insert(*it);
+                        }
+                    }
+                    else if (forbidden)
                     {
-                        result.insert(*it);
+                        result.forbid(it->value());
                     }
                 }
                 return result;

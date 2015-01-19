@@ -7,7 +7,6 @@
 
 #include "operation.h"
 
-#if 0
 TEST(TestOperation, ModifyAttributes)
 {
     typedef WW::Operation<std::string> operation_t;
@@ -17,30 +16,31 @@ TEST(TestOperation, ModifyAttributes)
     dependencies.require("one");
     dependencies.require("two");
     dependencies.require("three");
+    dependencies.forbid("four");
 
-    attribute_t forbidden;
-    forbidden.require("four");
-
-    attribute_t added;
-    added.require("four");
-    added.require("five");
-
-    attribute_t removed;
-    removed.require("two");
-    removed.require("three");
+    attribute_t changes;
+    changes.require("four");
+    changes.require("five");
+    changes.forbid("two");
+    changes.forbid("three");
 
     operation_t op;
     op.setDependencies(dependencies);
-    op.setForbidden(forbidden);
-    op.setAdded(added);
-    op.setRemoved(removed);
+    op.setChanges(changes);
 
-    attribute_t attrs;
-    attrs.require("one");
-    attrs.require("two");
-    attrs.require("three");
-    attrs.require("apple");
-    attrs.require("banana");
+    attribute_t state;
+    state.require("one");
+    state.require("two");
+    state.require("apple");
+    state.require("banana");
+
+    ASSERT_FALSE(op.isValid(state)) << "We're missing 'three'";
+    state.require("three");
+    state.require("four");
+    ASSERT_FALSE(op.isValid(state)) << "State has forbidden element 'four'";
+    state.erase("four");
+
+    ASSERT_TRUE(op.isValid(state)) << "Check operation is valid for these attributes";
     
     attribute_t expected;
     expected.require("one");
@@ -49,14 +49,11 @@ TEST(TestOperation, ModifyAttributes)
     expected.require("apple");
     expected.require("banana");
 
-    ASSERT_TRUE(op.isValid(attrs)) << "Check operation is valid for these attributes";
+    attribute_t modified = op.apply(state);
 
-    attribute_t modified = op.apply(attrs);
     ASSERT_EQ(expected, modified) << "Check that the attributes were modified correctly";
-    ASSERT_FALSE(op.isValid(modified)) << "Attributes are no longer valid after operation was applied";
+    ASSERT_FALSE(op.isValid(modified)) << "State is no longer valid after operation was applied";
 
-    modified = attrs;
-    op.modify(modified);
-    ASSERT_EQ(expected, modified) << "Check that the attributes were modified in-please correctly";
+    op.modify(state);
+    ASSERT_EQ(expected, state) << "Check that the attributes were modified in-please correctly";
 }
-#endif

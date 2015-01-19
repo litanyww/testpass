@@ -230,18 +230,29 @@ TEST(TestAttributes, TestApplyChanges)
 
 TEST(TestAttributes, TestDifferences)
 {
+    // I have a current state represented as an Attributes objet.  I also have
+    // an Operation object with a set of requirements.  I want to know which
+    // requirements are missing, and which are present but need to be removed.
+    // Basically, if I can find an operation which has a set of changes which
+    // exactly match the generated attributes, then applying that operation
+    // would satisfy the requirements of the first operation.
+
     typedef WW::Attributes<std::string> attribute_t;
-    attribute_t first;
-    attribute_t second;
+    attribute_t state;
+    attribute_t requirements;
 
-    first.require("one");
-    first.require("two");
-    first.require("three");
+    state.require("one");
+    state.require("two");
+    state.require("three");
 
-    second.require("one");
-    second.require("deux");
-    second.require("three");
+    requirements.require("one");
+    requirements.require("deux");
+    requirements.forbid("three");
 
-    ASSERT_EQ(attribute_t("two"), first.missingFrom(second)) << "List of entries not found in argument";
-    ASSERT_EQ(attribute_t("deux"), second.missingFrom(first)) << "List of entries not found in argument";
+    attribute_t expected;
+    expected.require("deux");
+    expected.forbid("three");
+
+    attribute_t changes = state.differences(requirements);
+    ASSERT_EQ(expected, changes) << "Compare expected differences with reality";
 }

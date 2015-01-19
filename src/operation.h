@@ -17,7 +17,7 @@ namespace WW
             typedef Attributes<_T> value_type;
         public:
             ~Operation() {}
-            Operation() : m_dependencies(), m_forbidden(), m_added(), m_removed() {}
+            Operation() : m_dependencies(), m_changes() {}
 #if __cplusplus >= 201103L
             Operation(const Operation& copy) = default;
             Operation& operator=(const Operation& copy) = default;
@@ -25,13 +25,10 @@ namespace WW
 #endif
         public:
             void setDependencies(const value_type& attributes) { m_dependencies = attributes; }
-            void setForbidden(const value_type& attributes) { m_forbidden = attributes; }
-            void setAdded(const value_type& attributes) { m_added = attributes; }
-            void setRemoved(const value_type& attributes) { m_removed = attributes; }
+            void setChanges(const value_type& attributes) { m_changes = attributes; }
             /** Modify a set of attributes according to this operation */
             void modify(value_type& attributes) const {
-                attributes.remove(m_removed);
-                attributes.add(m_added);
+                attributes.applyChanges(m_changes);
             }
             /** Create a new set of attributes, modified by this operation */
             value_type apply(const value_type& attributes) const {
@@ -39,15 +36,11 @@ namespace WW
                 modify(result);
                 return result;
             }
-            bool isValid(const value_type& attributes) const { return attributes.containsAll(m_dependencies) && !attributes.containsAny(m_forbidden); }
-
-        public:
+            bool isValid(const value_type& attributes) const { return attributes.containsAll(m_dependencies); }
 
         private:
             value_type m_dependencies;
-            value_type m_forbidden;
-            value_type m_added;
-            value_type m_removed;
+            value_type m_changes;
         };
 }
 
