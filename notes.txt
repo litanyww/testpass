@@ -52,3 +52,39 @@ of operations which are needed to get the system into the state we need.
 
 For each attribute to change, we may have multiple TestSteps with matching
 dependencies.  Select the cheapest at each turn.
+
+-----
+
+So, I now have kick-ass Attributes and Operations classes.
+
+And, I think I have a mechanism for navigating TestSteps.
+
+ 1.  Exhaust all changeless TestSteps which match the current state.
+ 2.  Pick a change TestStep which matches the current state, and go to 1.
+ -   Now we have no easy next step.  None of the remaining TestCases can be satisfied.
+ 3.  Iterate through the remaining test steps
+     - calculating the state changes required to satisfy each TestStep's requirements.
+     - pick the TestStep with the smallest requirements change
+ 4.  Iterate through all TestSteps (required or otherwise) which are valid.
+     - apply to current state, get difference to requirements
+     - whichever change gets closest to desired requirements, apply and goto 4.
+     - avoid circular paths by copying list of all test steps, and removing used test steps with each choice
+     - if no change is valid, then stop with an error; we're missing a test step
+     - if we don't stop, we must eventually fulfil the requirements of our target test step, in which case we can goto 1
+
+-----
+
+So what components will I need:
+
+ - attributes (done)
+ - operations (dependencies/changes) (done)
+ - TestStep
+   - encapsulates an operation
+   - cost to perform step
+   - required flag - is performing this step required for the test pass
+   - description of test to perform and expected result
+   - and/or automated script to perform the same action
+ - TestStepsRepository (vector?)
+   - owns a list of test steps
+ - TestChain (list?)
+   - a list of TestStep reference/pointers.  Cheap to construct/copy
