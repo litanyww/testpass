@@ -38,6 +38,13 @@ namespace WW
             }
             bool isValid(const value_type& attributes) const { return attributes.containsAll(m_dependencies); }
             bool hasChanges() const { return m_changes.size() != 0; }
+            value_type getDifferences(const value_type& state) const {
+                value_type result;
+                return state.differences(m_dependencies, result);
+            }
+            value_type& getDifferences(const value_type& state, value_type& out_result) const {
+                return state.differences(m_dependencies);
+            }
 
         private:
             value_type m_dependencies;

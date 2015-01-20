@@ -59,3 +59,30 @@ TEST(TestOperation, ModifyAttributes)
     op.modify(state);
     ASSERT_EQ(expected, state) << "Check that the attributes were modified in-please correctly";
 }
+
+TEST(TestOperation, GetDifferences)
+{
+    typedef WW::Operation<std::string> operation_t;
+    typedef operation_t::value_type attribute_t;
+
+    attribute_t state;
+    state.require("apple");
+    state.require("one");
+    state.require("two"); // oops, the operation forbids this attribute
+    state.require("four");
+
+    attribute_t dependencies;
+    dependencies.require("one"); // already matched
+    dependencies.forbid("two"); 
+    dependencies.require("three"); // state doesn't have this
+
+    operation_t op;
+    op.setDependencies(dependencies);
+
+    attribute_t expected;
+    expected.require("three");
+    expected.forbid("two");
+
+    ASSERT_EQ(expected, op.getDifferences(state)) << "Get a set of changes which would have to be applied to state to match requirements";
+}
+
