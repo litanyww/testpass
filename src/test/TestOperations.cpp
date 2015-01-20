@@ -26,7 +26,9 @@ TEST(TestOperation, ModifyAttributes)
 
     operation_t op;
     op.setDependencies(dependencies);
+    ASSERT_FALSE(op.hasChanges()) << "This operation has no changes";
     op.setChanges(changes);
+    ASSERT_TRUE(op.hasChanges()) << "This operation now has changes";
 
     attribute_t state;
     state.require("one");

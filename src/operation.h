@@ -37,6 +37,7 @@ namespace WW
                 return result;
             }
             bool isValid(const value_type& attributes) const { return attributes.containsAll(m_dependencies); }
+            bool hasChanges() const { return m_changes.size() != 0; }
 
         private:
             value_type m_dependencies;
