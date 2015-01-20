@@ -6,6 +6,9 @@
 #
 
 OBJ_DIR = objs
+STEPS_SRCS = $(wildcard src/*.cpp)
+STEPS_OBJS = $(addprefix $(OBJ_DIR)/,$(STEPS_SRCS:%.cpp=%.o))                             
+STEPS_DEPS = $(STEPS_OBJS:%.o=%.d)
 TEST_SRCS = $(wildcard src/test/*.cpp)
 TEST_OBJS = $(addprefix $(OBJ_DIR)/,$(TEST_SRCS:%.cpp=%.o))
 TEST_DEPS = $(TEST_OBJS:%.o=%.d)
@@ -37,12 +40,12 @@ $(OBJ_DIR)/%.d : %.cpp
 		sed 's,\($(notdir $*)\)\.o[ :]*,$(dir $@)$(notdir $*).o $@ : ,g' < $@.$$$$ > $@; \
 		rm -f $@.$$$$
 
--include $(TEST_DEPS)
+-include $(TEST_DEPS) $(STEPS_DEPS)
 
 gtest-1.7.0.zip :
 	curl -O https://googletest.googlecode.com/files/gtest-1.7.0.zip
 
-tests : $(TEST_OBJS) $(OBJ_DIR)/gtest-all.o
+tests : $(STEPS_OBJS) $(TEST_OBJS) $(OBJ_DIR)/gtest-all.o
 	$(CXX) $(CXXFLAGS) $(LXXFLAGS) -o $@ $^ -lpthread
 
 clean :
