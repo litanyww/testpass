@@ -152,6 +152,7 @@ TEST(TestSteps, Test)
                 "dependencies:!installed\n"
                 "changes:installed,onaccess\n"
                 "cost:5\n"
+                "required:no\n"
                 "description:install the product"
                 ));
     steps.addStep(makeStep( // configure autoclean
