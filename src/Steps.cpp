@@ -57,7 +57,7 @@ WW::Steps::Impl::debug_dump() const
 
     for (steplist_t::const_iterator it = m_chain.begin(); it != m_chain.end(); ++it)
     {
-        ost << ++item << ". " << **it << std::endl;
+        ost << ++item << ". " << (*it)->description() << std::endl;
     }
 
     return ost.str();
@@ -99,32 +99,32 @@ namespace {
         }
 
     const WW::TestStep*
-        navigate_to(const attributes_t& target, const attributes_t& state, const stepstore_t& steps)
+        navigate_to(const attributes_t& target, const attributes_t& state, const steplist_t& steps, bool required = false)
         {
             const WW::TestStep* result = 0;
             unsigned int fewest_attributes = 0;
-            for (stepstore_t::const_iterator it = steps.begin(); it != steps.end(); ++it)
+            for (steplist_t::const_iterator it = steps.begin(); it != steps.end(); ++it)
             {
-                if (!it->operation().isValid(state))
+                if (!(*it)->operation().hasChanges() || !(*it)->operation().isValid(state) || (required && !(*it)->required()))
                 {
                     continue;
                 }
-                attributes_t nextState = it->operation().apply(state);
+                attributes_t nextState = (*it)->operation().apply(state);
                 attributes_t diffs = target.differences(nextState);
                 size_t count = diffs.size();
                 if (result == 0)
                 {
-                    result = &(*it);
+                    result = *it;
                     fewest_attributes = count;
                     continue;
                 }
                 else if (count <= fewest_attributes)
                 {
-                    unsigned int cost = it->cost();
+                    unsigned int cost = (*it)->cost();
 
                     if (count < fewest_attributes || cost < result->cost())
                     {
-                        result = &(*it);
+                        result = *it;
                         fewest_attributes = count;
                     }
                 }
@@ -132,15 +132,25 @@ namespace {
             return result;
         }
     void
-        remove(const WW::TestStep* item, steplist_t* pending)
+        remove(const WW::TestStep* item, steplist_t& pending)
         {
-            for (steplist_t::iterator it = pending->begin(); it != pending->end(); ++it)
+            for (steplist_t::iterator it = pending.begin(); it != pending.end(); ++it)
             {
                 if (*it == item)
                 {
-                    pending->erase(it);
+                    pending.erase(it);
                     break;
                 }
+            }
+        }
+    void
+        clone(const stepstore_t& allSteps, steplist_t& list)
+        {
+            list.clear();
+            for (stepstore_t::const_iterator it = allSteps.begin(); it != allSteps.end(); ++it)
+            {
+                const WW::TestStep& step = *it;
+                list.push_back(&step);
             }
         }
 }
@@ -150,12 +160,7 @@ WW::Steps::Impl::calculate()
 {
     DBGOUT("calculate()");
 
-    for (stepstore_t::const_iterator it = m_allSteps.begin(); it != m_allSteps.end(); ++it)
-    {
-        const TestStep& step = *it;
-        m_pending.push_back(&step);
-    }
-
+    clone(m_allSteps, m_pending);
     while (!m_pending.empty())
     {
         const TestStep* candidate = cheapest_next_candidate(m_state, m_pending);
@@ -167,21 +172,33 @@ WW::Steps::Impl::calculate()
         }
         while (!candidate->operation().isValid(m_state))
         {
-            const TestStep* step = navigate_to(candidate->operation().dependencies(), m_state, m_allSteps);
-            if (step == 0)
+            steplist_t available;
+            clone(m_allSteps, available);
+
+            // If we can, see if we can use one of our pending, required steps.
+            const TestStep* step = navigate_to(candidate->operation().dependencies(), m_state, m_pending, true);
+            if (step != 0)
             {
-                std::cerr << "ERROR: Unable to work out how to satisfy dependencies: " << candidate->operation().dependencies() << std::endl;
-                return;
+                remove(step, m_pending);
+            }
+            else
+            {
+                step = navigate_to(candidate->operation().dependencies(), m_state, available);
+                if (step == 0)
+                {
+                    std::cerr << "ERROR: Unable to work out how to satisfy dependencies: " << candidate->operation().dependencies() << std::endl;
+                    return;
+                }
             }
             DBGOUT("navigating to " << *step);
 
             m_chain.push_back(step);
-            remove(step, &m_pending);
+            remove(step, m_pending);
             step->operation().modify(m_state);
         }
         DBGOUT("cheapest candidate=" << *candidate);
         m_chain.push_back(candidate);
-        remove(candidate, &m_pending);
+        remove(candidate, m_pending);
         candidate->operation().modify(m_state);
     }
 }

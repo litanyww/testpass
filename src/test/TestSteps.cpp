@@ -148,15 +148,22 @@ TEST(TestSteps, Test)
 {
     WW::Steps steps;
 
-    steps.addStep(makeStep( // install the produt
+    steps.addStep(makeStep( // check access eicar while autoclean is enabled will detect and clean it up
+                "dependencies:haveEicar,onaccess,installed,autoclean\n"
+                "changes:!haveEicar\n"
+                "required:yes\n"
+                "cost:4\n"
+                "description: access /tmp/eicar.com.  Access will be denied.  After a moment, the file /tmp/eicar.com will be removed"
+                ));
+    steps.addStep(makeStep( // install the product
                 "dependencies:!installed\n"
                 "changes:installed,onaccess\n"
                 "cost:5\n"
-                "required:no\n"
+                "required:yes\n" // force this as a requirement; meaning it'll happen before other test steps
                 "description:install the product"
                 ));
     steps.addStep(makeStep( // configure autoclean
-                "dependencies:installed\n"
+                "dependencies:installed,!autoclean\n"
                 "changes:autoclean\n"
                 "cost:2\n"
                 "required:no\n"
@@ -181,13 +188,7 @@ TEST(TestSteps, Test)
                 "changes:haveEicar\n"
                 "cost:1\n"
                 "required:no\n"
-                "description: put eiar onto the drive at /tmp/eicar.com"
-                ));
-    steps.addStep(makeStep( // check access eicar while autoclean is enabled will detect and clean it up
-                "dependencies:haveEicar,onaccess,installed,autoclean\n"
-                "changes:!haveEicar\n"
-                "cost:4\n"
-                "description: access /tmp/eicar.com.  Access will be denied.  After a moment, the file /tmp/eicar.com will be removed"
+                "description: put eicar onto the drive at /tmp/eicar.com"
                 ));
 
     steps.calculate();
