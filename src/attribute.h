@@ -73,8 +73,4 @@ namespace WW
         }
 }
 
-
-
-
 #endif // INCLUDE_WW_ATTRIBUTE_HEADER
-

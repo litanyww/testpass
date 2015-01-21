@@ -23,9 +23,13 @@ namespace WW
             Operation& operator=(const Operation& copy) = default;
             Operation(Operation&& copy) = default;
 #endif
-        public:
-            void setDependencies(const value_type& attributes) { m_dependencies = attributes; }
-            void setChanges(const value_type& attributes) { m_changes = attributes; }
+        public: // non-const
+            void dependencies(const value_type& attributes) { m_dependencies = attributes; }
+            const value_type& dependencies() const { return m_dependencies; }
+            void changes(const value_type& attributes) { m_changes = attributes; }
+            const value_type& changes() const { return m_changes; }
+
+        public: // const
             /** Modify a set of attributes according to this operation */
             void modify(value_type& attributes) const {
                 attributes.applyChanges(m_changes);
@@ -50,6 +54,31 @@ namespace WW
             value_type m_dependencies;
             value_type m_changes;
         };
+    template <class Stream, class _T>
+        Stream&
+        operator<<(Stream& ost, const Operation<_T>& ob)
+        {
+            ost << "[";
+            bool comma = false;
+            const Attributes<_T>& deps = ob.dependencies();
+            const Attributes<_T>& changes = ob.changes();
+            if (deps.size() > 0)
+            {
+                ost << "requirement:" << deps;
+                comma = true;
+            }
+            if (changes.size() > 0)
+            {
+                if (comma)
+                {
+                    ost << ',';
+                }
+                ost << "changes:" << changes;
+            }
+            ost << "]";
+
+            return ost;
+        }
 }
 
 #endif // INCLUDE_WW_OPERATION_HEADER

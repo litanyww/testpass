@@ -8,17 +8,25 @@
 #include <sstream>
 #include <list>
 #include <deque>
+#include <iostream>
+
+#define DBGOUT(_x) do { std::cerr << "DEBUG: " << _x << std::endl; } while (0)
+
+typedef WW::TestStep::value_type attributes_t;
+typedef std::list<const WW::TestStep*> steplist_t;
+typedef std::list<WW::TestStep> stepstore_t;
 
 class WW::Steps::Impl
 {
 private:
-    typedef std::list<TestStep> stepstore_t;
-    typedef std::list<TestStep*> steplist_t;
 
 public:
     Impl()
         : m_allSteps()
-        , m_chain() {}
+        , m_chain()
+        , m_pending()
+        , m_state()
+        {}
     ~Impl() {}
 
 private: // forbid copy and assignment
@@ -32,19 +40,155 @@ public:
     const steplist_t& chain() const { return m_chain; }
 
     std::string debug_dump() const;
+    void calculate();
 
 private:
     stepstore_t m_allSteps;
     steplist_t m_chain;
+    mutable steplist_t m_pending; // steps which still need to be scheduled
+    attributes_t m_state;
 };
 
 std::string
 WW::Steps::Impl::debug_dump() const
 {
     std::ostringstream ost;
+    unsigned int item = 0;
+
+    for (steplist_t::const_iterator it = m_chain.begin(); it != m_chain.end(); ++it)
+    {
+        ost << ++item << ". " << **it << std::endl;
+    }
 
     return ost.str();
 }
+
+namespace {
+    const WW::TestStep*
+        cheapest_next_candidate(const attributes_t& state, const steplist_t& pending)
+        {
+            const WW::TestStep* result = 0;
+            unsigned int fewest_attributes = 0;
+            for (steplist_t::const_iterator it = pending.begin(); it != pending.end(); ++it)
+            {
+                if (!(*it)->required())
+                {
+                    continue;
+                }
+
+                attributes_t diffs = (*it)->operation().getDifferences(state);
+                size_t count = diffs.size();
+                if (result == 0)
+                {
+                    result = *it;
+                    fewest_attributes = count;
+                    continue;
+                }
+                else if (count <= fewest_attributes)
+                {
+                    unsigned int cost = (*it)->cost();
+
+                    if (count < fewest_attributes || cost < result->cost())
+                    {
+                        result = *it;
+                        fewest_attributes = count;
+                    }
+                }
+            }
+            return result;
+        }
+
+    const WW::TestStep*
+        navigate_to(const attributes_t& target, const attributes_t& state, const stepstore_t& steps)
+        {
+            const WW::TestStep* result = 0;
+            unsigned int fewest_attributes = 0;
+            for (stepstore_t::const_iterator it = steps.begin(); it != steps.end(); ++it)
+            {
+                if (!it->operation().isValid(state))
+                {
+                    continue;
+                }
+                attributes_t nextState = it->operation().apply(state);
+                attributes_t diffs = target.differences(nextState);
+                size_t count = diffs.size();
+                if (result == 0)
+                {
+                    result = &(*it);
+                    fewest_attributes = count;
+                    continue;
+                }
+                else if (count <= fewest_attributes)
+                {
+                    unsigned int cost = it->cost();
+
+                    if (count < fewest_attributes || cost < result->cost())
+                    {
+                        result = &(*it);
+                        fewest_attributes = count;
+                    }
+                }
+            }
+            return result;
+        }
+    void
+        remove(const WW::TestStep* item, steplist_t* pending)
+        {
+            for (steplist_t::iterator it = pending->begin(); it != pending->end(); ++it)
+            {
+                if (*it == item)
+                {
+                    pending->erase(it);
+                    break;
+                }
+            }
+        }
+}
+
+void
+WW::Steps::Impl::calculate()
+{
+    DBGOUT("calculate()");
+
+    for (stepstore_t::const_iterator it = m_allSteps.begin(); it != m_allSteps.end(); ++it)
+    {
+        const TestStep& step = *it;
+        m_pending.push_back(&step);
+    }
+
+    while (!m_pending.empty())
+    {
+        const TestStep* candidate = cheapest_next_candidate(m_state, m_pending);
+        if (candidate == 0)
+        {
+            DBGOUT("No pending required candidate exists which is also valid");
+            // No pending required candidate exists which is also valid
+            break;
+        }
+        while (!candidate->operation().isValid(m_state))
+        {
+            const TestStep* step = navigate_to(candidate->operation().dependencies(), m_state, m_allSteps);
+            if (step == 0)
+            {
+                std::cerr << "ERROR: Unable to work out how to satisfy dependencies: " << candidate->operation().dependencies() << std::endl;
+                return;
+            }
+            DBGOUT("navigating to " << *step);
+
+            m_chain.push_back(step);
+            remove(step, &m_pending);
+            step->operation().modify(m_state);
+        }
+        DBGOUT("cheapest candidate=" << *candidate);
+        m_chain.push_back(candidate);
+        remove(candidate, &m_pending);
+        candidate->operation().modify(m_state);
+    }
+}
+
+///
+///
+///
 
 WW::Steps::Steps()
 : m_pimpl(new Impl)
@@ -66,4 +210,10 @@ std::string
 WW::Steps::debug_dump() const
 {
     return m_pimpl->debug_dump();
+}
+
+void
+WW::Steps::calculate()
+{
+    m_pimpl->calculate();
 }

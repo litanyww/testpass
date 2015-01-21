@@ -7,6 +7,8 @@
 
 #include "attributes.h"
 
+#include <sstream>
+
 TEST(TestAttributes, AttributeAsSet)
 {
     typedef WW::Attributes<std::string> attribute_t;
@@ -27,6 +29,11 @@ TEST(TestAttributes, AttributeAsSet)
     ASSERT_EQ(1, collection.size()) << "Adding a negative attribute doesn't change the size";
     ASSERT_TRUE(collection.begin()->isForbidden()) << "Make sure that we've changed the forbidden flag";
 
+    collection.require("three");
+    collection.require("four");
+    std::ostringstream ost;
+    ost << collection;
+    ASSERT_EQ("[four,three,!two]", ost.str()) << "Attributes dump to ostream";
 }
 
 TEST(TestAttributes, InsertUsingIterators)

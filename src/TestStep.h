@@ -8,6 +8,9 @@
 
 #include "operation.h"
 
+#include <string>
+#include <iostream>
+
 namespace WW
 {
     class TestStep
@@ -24,12 +27,9 @@ namespace WW
         TestStep(TestStep&& copy);
 #endif
     public:
-        void setDependencies(const value_type& attributes) { m_operation.setDependencies(attributes); }
-        void setChanges(const value_type& attributes) { m_operation.setChanges(attributes); }
-        void modify(value_type& attributes) const { m_operation.modify(attributes); }
-        value_type apply(const value_type& attributes) const { return m_operation.apply(attributes); }
-        bool isValid(const value_type& attributes) const { return m_operation.isValid(attributes); }
-        bool hasChanges() const { return m_operation.hasChanges(); }
+        void dependencies(const value_type& attributes) { m_operation.dependencies(attributes); }
+        void changes(const value_type& attributes) { m_operation.changes(attributes); }
+        const operation_t& operation() const { return m_operation; }
 
         unsigned int cost() const { return m_cost; }
         unsigned int cost(unsigned int value) { unsigned int result = m_cost; m_cost = value; return result; }
@@ -47,6 +47,23 @@ namespace WW
         std::string m_description; // describes the steps to take for this test
         // TODO: automation script
     };
+
+    template <class Stream>
+        Stream&
+        operator<<(Stream& str, const TestStep& ob)
+        {
+            str << "[TestStep " << ob.operation() << ", description=" << ob.description();
+            if (ob.cost() != 0)
+            {
+                str << ", cost=" << ob.cost();
+            }
+            if (ob.required())
+            {
+                str << ", required";
+            }
+            str << "]";
+            return str;
+        }
 }
 
 #endif // INCLUDE_WW_TESTSTEP_HEADER

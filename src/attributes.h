@@ -12,7 +12,6 @@
 
 namespace WW
 {
-    
     template <class _T>
         class Attributes
         {
@@ -206,5 +205,25 @@ namespace WW
                 return out_result;
             }
         };
+    template <class Stream, class _T>
+        Stream&
+        operator<<(Stream& ost, const Attributes<_T>& ob)
+        {
+            ost << "[";
+            bool comma = false;
+            for (typename Attributes<_T>::const_iterator it = ob.begin(); it != ob.end(); ++it) {
+                if (comma)
+                {
+                    ost << ",";
+                }
+                else
+                {
+                    comma = true;
+                }
+                ost << *it;
+            }
+            ost << "]";
+            return ost;
+        }
 }
 #endif // INCLUDE_WW_ATTRIBUTES_HEADER

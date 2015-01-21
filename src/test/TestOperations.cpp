@@ -7,6 +7,8 @@
 
 #include "operation.h"
 
+#include <sstream>
+
 TEST(TestOperation, ModifyAttributes)
 {
     typedef WW::Operation<std::string> operation_t;
@@ -25,9 +27,9 @@ TEST(TestOperation, ModifyAttributes)
     changes.forbid("three");
 
     operation_t op;
-    op.setDependencies(dependencies);
+    op.dependencies(dependencies);
     ASSERT_FALSE(op.hasChanges()) << "This operation has no changes";
-    op.setChanges(changes);
+    op.changes(changes);
     ASSERT_TRUE(op.hasChanges()) << "This operation now has changes";
 
     attribute_t state;
@@ -58,6 +60,10 @@ TEST(TestOperation, ModifyAttributes)
 
     op.modify(state);
     ASSERT_EQ(expected, state) << "Check that the attributes were modified in-please correctly";
+
+    std::ostringstream ost;
+    ost << op;
+    ASSERT_EQ("[requirement:[!four,one,three,two],changes:[five,four,!three,!two]]", ost.str()) << "Operation can be streamed";
 }
 
 TEST(TestOperation, GetDifferences)
@@ -77,7 +83,7 @@ TEST(TestOperation, GetDifferences)
     dependencies.require("three"); // state doesn't have this
 
     operation_t op;
-    op.setDependencies(dependencies);
+    op.dependencies(dependencies);
 
     attribute_t expected;
     expected.require("three");

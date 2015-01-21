@@ -37,6 +37,7 @@ namespace WW
 
     public:
         void addStep(const TestStep& step);
+        void calculate(); // Generate the test pass
         std::string debug_dump() const; // Temporary function which will dump the content to a string
 
     private:
