@@ -71,11 +71,6 @@ namespace {
             unsigned int fewest_attributes = 0;
             for (steplist_t::const_iterator it = pending.begin(); it != pending.end(); ++it)
             {
-                if (!(*it)->required())
-                {
-                    continue;
-                }
-
                 attributes_t diffs = (*it)->operation().getDifferences(state);
                 size_t count = diffs.size();
                 if (result == 0)
@@ -143,6 +138,21 @@ namespace {
                 }
             }
         }
+
+    void
+        clone_required(const stepstore_t& allSteps, steplist_t& list)
+        {
+            list.clear();
+            for (stepstore_t::const_iterator it = allSteps.begin(); it != allSteps.end(); ++it)
+            {
+                const WW::TestStep& step = *it;
+                if (step.required())
+                {
+                    list.push_back(&step);
+                }
+            }
+        }
+
     void
         clone(const stepstore_t& allSteps, steplist_t& list)
         {
@@ -158,18 +168,12 @@ namespace {
 void
 WW::Steps::Impl::calculate()
 {
-    DBGOUT("calculate()");
+    //DBGOUT("calculate()");
 
-    clone(m_allSteps, m_pending);
+    clone_required(m_allSteps, m_pending);
     while (!m_pending.empty())
     {
         const TestStep* candidate = cheapest_next_candidate(m_state, m_pending);
-        if (candidate == 0)
-        {
-            DBGOUT("No pending required candidate exists which is also valid");
-            // No pending required candidate exists which is also valid
-            break;
-        }
         while (!candidate->operation().isValid(m_state))
         {
             steplist_t available;
