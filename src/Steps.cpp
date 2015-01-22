@@ -127,13 +127,13 @@ namespace {
             return result;
         }
     void
-        remove(const WW::TestStep* item, steplist_t& pending)
+        remove(const WW::TestStep* item, steplist_t& list)
         {
-            for (steplist_t::iterator it = pending.begin(); it != pending.end(); ++it)
+            for (steplist_t::iterator it = list.begin(); it != list.end(); ++it)
             {
                 if (*it == item)
                 {
-                    pending.erase(it);
+                    list.erase(it);
                     break;
                 }
             }
@@ -174,18 +174,14 @@ WW::Steps::Impl::calculate()
     while (!m_pending.empty())
     {
         const TestStep* candidate = cheapest_next_candidate(m_state, m_pending);
+        steplist_t available;
+        clone(m_allSteps, available);
         while (!candidate->operation().isValid(m_state))
         {
-            steplist_t available;
-            clone(m_allSteps, available);
 
             // If we can, see if we can use one of our pending, required steps.
             const TestStep* step = navigate_to(candidate->operation().dependencies(), m_state, m_pending, true);
-            if (step != 0)
-            {
-                remove(step, m_pending);
-            }
-            else
+            if (step == 0)
             {
                 step = navigate_to(candidate->operation().dependencies(), m_state, available);
                 if (step == 0)
@@ -198,6 +194,7 @@ WW::Steps::Impl::calculate()
 
             m_chain.push_back(step);
             remove(step, m_pending);
+            remove(step, available);
             step->operation().modify(m_state);
         }
         DBGOUT("cheapest candidate=" << *candidate);

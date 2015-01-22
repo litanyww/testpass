@@ -158,10 +158,20 @@ TEST(TestSteps, Test)
 
     steps.addStep(makeStep( // check access is denied when configuration is set to deny access
                 "dependencies:haveEicar,onaccess,installed\n"
+                "changes:eicarInQuarantine\n"
                 "required:yes\n"
                 "cost:4\n"
-                "description: access /tmp/eicar.com.  Access will be denied.  Details about the file will be displayed in the quarantine."
+                "description: access /tmp/eicar.com.  Access will be denied."
                 ));
+
+    steps.addStep(makeStep( // clean eicar using quarantine
+                "dependencies:eicarInQuarantine,!autoclean\n"
+                "changes:!eicarInQuarantine\n"
+                "required:yes\n"
+                "cost:3\n"
+                "description: Check the quarantine.  Details about the file will be displayed.  Click the item, authenticate and choose 'Clean'"
+                ));
+
     steps.addStep(makeStep( // install the product
                 "dependencies:!installed\n"
                 "changes:installed,onaccess\n"
@@ -174,7 +184,14 @@ TEST(TestSteps, Test)
                 "changes:autoclean\n"
                 "cost:2\n"
                 "required:no\n"
-                "description:configure automatic clean on detection"
+                "description:In the product preferences, configure automatic clean on detection"
+                ));
+    steps.addStep(makeStep( // set deny access
+                "dependencies:installed\n"
+                "changes:!autoclean\n"
+                "cost:2\n"
+                "required:no\n"
+                "description:In the product preferences, configure on-access to deny on detection."
                 ));
     steps.addStep(makeStep( // turn off on-access scanning
                 "dependencies:onaccess,installed\n"
