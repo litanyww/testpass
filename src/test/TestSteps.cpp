@@ -155,6 +155,13 @@ TEST(TestSteps, Test)
                 "cost:4\n"
                 "description: access /tmp/eicar.com.  Access will be denied.  After a moment, the file /tmp/eicar.com will be removed"
                 ));
+
+    steps.addStep(makeStep( // check access is denied when configuration is set to deny access
+                "dependencies:haveEicar,onaccess,installed\n"
+                "required:yes\n"
+                "cost:4\n"
+                "description: access /tmp/eicar.com.  Access will be denied.  Details about the file will be displayed in the quarantine."
+                ));
     steps.addStep(makeStep( // install the product
                 "dependencies:!installed\n"
                 "changes:installed,onaccess\n"
