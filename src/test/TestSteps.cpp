@@ -166,7 +166,7 @@ TEST(TestSteps, Test)
 
     steps.addStep(makeStep( // clean eicar using quarantine
                 "dependencies:eicarInQuarantine,!autoclean\n"
-                "changes:!eicarInQuarantine\n"
+                "changes:!eicarInQuarantine,!haveEicar\n"
                 "required:yes\n"
                 "cost:3\n"
                 "description: Check the quarantine.  Details about the file will be displayed.  Click the item, authenticate and choose 'Clean'"
@@ -176,7 +176,7 @@ TEST(TestSteps, Test)
                 "dependencies:!installed\n"
                 "changes:installed,onaccess\n"
                 "cost:5\n"
-                "required:yes\n" // force this as a requirement; meaning it'll happen before other test steps
+                "required:no\n" // force this as a requirement; meaning it'll happen before other test steps
                 "description:install the product"
                 ));
     steps.addStep(makeStep( // configure autoclean

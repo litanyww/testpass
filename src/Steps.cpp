@@ -98,6 +98,7 @@ namespace {
         {
             const WW::TestStep* result = 0;
             unsigned int fewest_attributes = 0;
+            attributes_t stateDiffs = state.differences(target);
             for (steplist_t::const_iterator it = steps.begin(); it != steps.end(); ++it)
             {
                 if (!(*it)->operation().hasChanges() || !(*it)->operation().isValid(state) || (required && !(*it)->required()))
@@ -105,7 +106,12 @@ namespace {
                     continue;
                 }
                 attributes_t nextState = (*it)->operation().apply(state);
-                attributes_t diffs = target.differences(nextState);
+                if (nextState == state)
+                { // no changes; there's really no point applying this change
+                    continue;
+                }
+                attributes_t diffs = nextState.differences(target);
+                DBGOUT("target=" << target << ", nextState=" << nextState << ", diffs=" << diffs << ", stateDiffs=" << stateDiffs);
                 size_t count = diffs.size();
                 if (result == 0)
                 {
