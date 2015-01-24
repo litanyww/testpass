@@ -9,6 +9,8 @@ OBJ_DIR = objs
 STEPS_SRCS = $(wildcard src/*.cpp)
 STEPS_OBJS = $(addprefix $(OBJ_DIR)/,$(STEPS_SRCS:%.cpp=%.o))                             
 STEPS_DEPS = $(STEPS_OBJS:%.o=%.d)
+STEPS_TARGET = libsteps.a
+
 TEST_SRCS = $(wildcard src/test/*.cpp)
 TEST_OBJS = $(addprefix $(OBJ_DIR)/,$(TEST_SRCS:%.cpp=%.o))
 TEST_DEPS = $(TEST_OBJS:%.o=%.d)
@@ -20,6 +22,9 @@ CXXFLAGS = -g $(CFLAGS)
 INCLUDES =  $(addprefix -I,$(INCLUDE_DIRS))
 
 all : tests
+
+$(STEPS_TARGET) : $(STEPS_OBJS)
+	ar cs $@ $^
 
 $(OBJ_DIR)/gtest-all.o : gtest-1.7.0/src/gtest-all.cc
 	@mkdir -p $(dir $@)
@@ -45,8 +50,8 @@ $(OBJ_DIR)/%.d : %.cpp
 gtest-1.7.0.zip :
 	curl -O https://googletest.googlecode.com/files/gtest-1.7.0.zip
 
-tests : $(STEPS_OBJS) $(TEST_OBJS) $(OBJ_DIR)/gtest-all.o
+tests : $(STEPS_TARGET) $(TEST_OBJS) $(OBJ_DIR)/gtest-all.o
 	$(CXX) $(CXXFLAGS) $(LXXFLAGS) -o $@ $^ -lpthread
 
 clean :
-	rm -rf tests objs
+	rm -rf tests objs $(STEPS_TARGET)
