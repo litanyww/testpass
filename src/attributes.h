@@ -158,7 +158,12 @@ namespace WW
                 }
                 return result;
             }
+
             bool containsAny(const Attributes& needle) const {
+                // haystack = ['one',  'two', 'three'], needle =  'two' *MATCH*
+                // haystack = ['one',  'two', 'three'], needle = '!two' *FAIL*
+                // haystack = ['one', '!two', 'three'], needle =  'two' *FAIL*
+                // haystack = ['one', '!two', 'three'], needle = '!two' *MATCH*
                 bool result = false;
                 const_iterator needleEnd = needle.end();
                 const_iterator notfound = m_contents.end();
@@ -167,7 +172,7 @@ namespace WW
                     const_iterator match = m_contents.find(*it);
                     if (match != notfound)
                     {
-                        if (it->isForbidden())
+                        if (it->isForbidden() != match->isForbidden())
                         {
                             result = false;
                             break;

@@ -196,6 +196,9 @@ TEST(TestAttributes, TestContainsAny)
     needle.forbid("two");
     ASSERT_FALSE(haystack.containsAny(needle)) << "Don't allow any forbidden items, even when we have matches.";
 
+    haystack.forbid("two");
+    ASSERT_TRUE(haystack.containsAny(needle)) << "Allow forbidden items if also forbidden in haystack.";
+
     needle = attribute_t();
 
     needle.require("five");
@@ -255,6 +258,7 @@ TEST(TestAttributes, TestDifferences)
     requirements.require("one");
     requirements.require("deux");
     requirements.forbid("three");
+    requirements.forbid("four"); // not in state, so satisfied and not expected in result
 
     attribute_t expected;
     expected.require("deux");

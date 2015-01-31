@@ -5,6 +5,8 @@
 
 #include "Steps.h"
 
+#include "TestException.h"
+
 #include <sstream>
 #include <list>
 #include <deque>
@@ -93,45 +95,97 @@ namespace {
             return result;
         }
 
-    const WW::TestStep*
-        navigate_to(const attributes_t& target, const attributes_t& state, const steplist_t& steps, bool required = false)
+    steplist_t findStepsProviding(const stepstore_t& steps, const attributes_t& attributes)
+    {
+        steplist_t result;
+        for (stepstore_t::const_iterator it = steps.begin(); it != steps.end(); ++it)
         {
-            const WW::TestStep* result = 0;
-            unsigned int fewest_attributes = 0;
-            attributes_t stateDiffs = state.differences(target);
-            for (steplist_t::const_iterator it = steps.begin(); it != steps.end(); ++it)
+            if (it->operation().changes().containsAny(attributes))
             {
-                if (!(*it)->operation().hasChanges() || !(*it)->operation().isValid(state) || (required && !(*it)->required()))
-                {
-                    continue;
-                }
-                attributes_t nextState = (*it)->operation().apply(state);
-                if (nextState == state)
-                { // no changes; there's really no point applying this change
-                    continue;
-                }
-                attributes_t diffs = nextState.differences(target);
-                DBGOUT("target=" << target << ", nextState=" << nextState << ", diffs=" << diffs << ", stateDiffs=" << stateDiffs);
-                size_t count = diffs.size();
-                if (result == 0)
-                {
-                    result = *it;
-                    fewest_attributes = count;
-                    continue;
-                }
-                else if (count <= fewest_attributes)
-                {
-                    unsigned int cost = (*it)->cost();
+                result.push_back(&(*it));
+            }
+        }
+        return result;
+    }
 
-                    if (count < fewest_attributes || cost < result->cost())
-                    {
-                        result = *it;
-                        fewest_attributes = count;
-                    }
+    /** solve
+     * @params state        starting state
+     * @params target       set of desired attributes
+     * @params steps        list of available steps
+     * @params out_result   results to return
+     *
+     * Determine the cheapest set of steps to iterate from state to target.  This function will be called recursively
+     */
+    const int
+        solve(const attributes_t& state, const attributes_t& target, const stepstore_t& steps, steplist_t& out_result)
+        {
+            DBGOUT("solve(state=" << state << ", target=" << target);
+            attributes_t missing;
+            state.differences(target, missing);
+            if (missing.size() == 0)
+            {
+                return 0;
+            }
+            steplist_t candidates = findStepsProviding(steps, missing);
+            if (candidates.size() == 0)
+            {
+                // This one is unusable
+                return 9999;
+                //throw WW::TestException("No step defined which provides attributes");
+            }
+
+            int cost = 9999;
+            out_result.clear();
+            for (steplist_t::const_iterator it = candidates.begin(); it != candidates.end(); ++it)
+            {
+                steplist_t list;
+                int outcome = 0;
+                if ((*it)->operation().isValid(state))
+                {
+                    // we don't need to search, it is immediately valid
+                    list.push_back(*it);
+                    outcome = (*it)->cost();
+                }
+                else
+                {
+                    outcome = solve(state, (*it)->operation().dependencies(), steps, list);
+                    list.push_back(*it);
+                }
+                if (list.size() > 0 && (out_result.size() == 0 || outcome < cost))
+                {
+                    cost = outcome;
+                    out_result = list;
                 }
             }
-            return result;
+
+            if (out_result.size() == 0)
+            {
+                DBGOUT("No solution for " << state << " to " << target);
+                return 0;
+            }
+
+            // cheapest should at this point be a sequence starting from
+            // `state`, but may not get us all the way to 'target'.  We call
+            // this function recursively at this point safely because we can't choose the same path, that set of attributes should already be satisfied.
+            
+            attributes_t candidateState = state;
+            for (steplist_t::const_iterator it = out_result.begin(); it != out_result.end(); ++it)
+            {
+#ifdef DEBUG
+                if (!(*it)->operation().isValid(candidateState))
+                {
+                    DBGOUT("ERROR: unexpectedly unable to apply solved state " << *(*it) << " onto " << candidateState);
+                    throw WW::TestException("Unable to apply cheapest solution");
+                }
+#endif
+                (*it)->operation().modify(candidateState);
+            }
+            steplist_t otherBits;
+            cost += solve(candidateState, target, steps, otherBits);
+            out_result.splice(out_result.end(), otherBits);
+            return cost;
         }
+
     void
         remove(const WW::TestStep* item, steplist_t& list)
         {
@@ -171,6 +225,26 @@ namespace {
         }
 }
 
+namespace std
+{
+    std::ostream& operator<<(std::ostream& ost, const steplist_t& list) {
+        ost << "[";
+        bool comma = false;
+        for (steplist_t::const_iterator it = list.begin(); it != list.end(); ++it)
+        {
+            if (comma) {
+                ost << ", ";
+            }
+            else {
+                comma = true;
+            }
+            ost << **it;
+        }
+        ost << "]";
+        return ost;
+    }
+}
+
 void
 WW::Steps::Impl::calculate()
 {
@@ -180,32 +254,23 @@ WW::Steps::Impl::calculate()
     while (!m_pending.empty())
     {
         const TestStep* candidate = cheapest_next_candidate(m_state, m_pending);
-        steplist_t available;
-        clone(m_allSteps, available);
-        while (!candidate->operation().isValid(m_state))
+
+        DBGOUT("resolving: " << *candidate);
+        steplist_t solved;
+        solve(m_state, candidate->operation().dependencies(), m_allSteps, solved);
+        if (solved.size() == 0)
         {
-
-            // If we can, see if we can use one of our pending, required steps.
-            const TestStep* step = navigate_to(candidate->operation().dependencies(), m_state, m_pending, true);
-            if (step == 0)
-            {
-                step = navigate_to(candidate->operation().dependencies(), m_state, available);
-                if (step == 0)
-                {
-                    std::cerr << "ERROR: Unable to work out how to satisfy dependencies: " << candidate->operation().dependencies() << std::endl;
-                    return;
-                }
-            }
-            DBGOUT("navigating to " << *step);
-
-            m_chain.push_back(step);
-            remove(step, m_pending);
-            remove(step, available);
-            step->operation().modify(m_state);
+            throw WW::TestException("No solution");
         }
-        DBGOUT("cheapest candidate=" << *candidate);
-        m_chain.push_back(candidate);
+        DBGOUT("  solved dependencies: " << solved);
+        for (steplist_t::const_iterator it = solved.begin(); it != solved.end(); ++it)
+        {
+            (*it)->operation().modify(m_state);
+            remove(*it, m_pending);
+        }
+        m_chain.splice(m_chain.end(), solved);
         remove(candidate, m_pending);
+        m_chain.push_back(candidate);
         candidate->operation().modify(m_state);
     }
 }

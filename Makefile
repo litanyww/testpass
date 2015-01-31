@@ -6,7 +6,7 @@
 #
 
 OBJ_DIR = objs
-STEPS_SRCS = $(wildcard src/*.cpp)
+STEPS_SRCS = src/Steps.cpp src/TestStep.cpp
 STEPS_OBJS = $(addprefix $(OBJ_DIR)/,$(STEPS_SRCS:%.cpp=%.o))                             
 STEPS_DEPS = $(STEPS_OBJS:%.o=%.d)
 STEPS_TARGET = libsteps.a
@@ -21,10 +21,14 @@ CXX = g++
 CXXFLAGS = -g $(CFLAGS)
 INCLUDES =  $(addprefix -I,$(INCLUDE_DIRS))
 
-all : tests
+all : tests compile
+
+compile : src/main.cpp $(STEPS_TARGET)
+	$(CXX) $(CXXFLAGS) $(LXXFLAGS) -o $@ $^
+
 
 $(STEPS_TARGET) : $(STEPS_OBJS)
-	ar cs $@ $^
+	ar rcs $@ $^
 
 $(OBJ_DIR)/gtest-all.o : gtest-1.7.0/src/gtest-all.cc
 	@mkdir -p $(dir $@)
@@ -50,7 +54,7 @@ $(OBJ_DIR)/%.d : %.cpp
 gtest-1.7.0.zip :
 	curl -O https://googletest.googlecode.com/files/gtest-1.7.0.zip
 
-tests : $(STEPS_TARGET) $(TEST_OBJS) $(OBJ_DIR)/gtest-all.o
+tests : $(TEST_OBJS) $(OBJ_DIR)/gtest-all.o $(STEPS_TARGET)
 	$(CXX) $(CXXFLAGS) $(LXXFLAGS) -o $@ $^ -lpthread
 
 clean :

@@ -10,6 +10,7 @@ WW::TestStep::TestStep()
 , m_cost(0)
 , m_required(false)
 , m_description()
+, m_short()
 {
 }
 
@@ -22,6 +23,7 @@ WW::TestStep::TestStep(const TestStep& copy)
 , m_cost(copy.m_cost)
 , m_required(copy.m_required)
 , m_description(copy.m_description)
+, m_short(copy.m_short)
 {
 }
 
@@ -32,6 +34,7 @@ WW::TestStep::operator=(const TestStep& copy)
     m_cost = copy.m_cost;
     m_required = copy.m_required;
     m_description = copy.m_description;
+    m_short = copy.m_short;
     return *this;
 }
 #if __cplusplus >= 201103L
@@ -40,6 +43,7 @@ WW::TestStep::TestStep(TestStep&& copy)
 , m_cost(copy.m_cost)
 , m_required(copy.m_required)
 , m_description(copy.m_description)
+, m_short(copy.m_short)
 {
 }
 #endif

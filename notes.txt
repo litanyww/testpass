@@ -88,3 +88,105 @@ So what components will I need:
    - owns a list of test steps
  - TestChain (list?)
    - a list of TestStep reference/pointers.  Cheap to construct/copy
+
+-----
+
+After some development and testing...
+
+I have some test compilation working.  What does not work so well is selecting
+a path where there is no direct path:
+ - No single step can be applied to reduces the distance
+ - A required step has a paired 'anti-step' which reverts to the existing
+   behaviour; and neither affect the distance to the candidate test step
+
+The required change is applied, but then it is undone unnecessarily because the
+score relative to the target state doesn't change, and that step represents the
+current cheapest step.
+
+I guess the problem is that in order to determine the shortest path to the next
+candidate, it may be necessary to temporarily diverge from the target.  For
+example, to install EICAR, it is necessary to disable on-access.  The test may
+require eicar enabled, so the act of turning off eicar can result in a
+temporary divergence.
+
+The current algorithm doesn't work because we simply pick the next closest task
+- and since I've shown that the right task may be further away, we'll end up
+picking the wrong one.
+
+I'm sure this can be solved by calculating all possible paths, scoring, and
+then picking the cheapest.  This may be really expensive, so I'm putting off
+implementing this solution in case I can come up with better one.
+
+On the other hand, at any given moment only a subset of operations will be
+possible, and this should help bring the price down.
+
+-----
+
+I realize that I'm looking at a brute force analysis.  This is obviously going
+to be expensive, with some alleviation in that I'm only considering steps which
+have changes (which may be most of them), and only steps which have matching
+pre-requesites.  It really isn't going to scale well at all.
+
+So I'm wondering whether there's a better option.  It's always helpful to
+analyse how a human would analyse the problem; and I think we would solve this
+problem by working backwards.
+
+ - Pick the next candidate we'd like to use
+ - see a list of the missing attributes
+ - for each step which will provide one or more of those attributes
+   - recursively call this algorithm to solve requirement for that step
+   - recursively call this algorithm to solve remaining requirements given new
+     state
+ - select cheapest
+
+So, I have an existing set of test steps:
+
+ -  accessToEicarDenied: haveEicar, onaccess, installed
+ -  make list of steps which provide those attributes:
+    dropEicar(1:!haveEicar,!onaccess), turnOnOnAccess(2:!onaccess,installed),
+    install(5:!installed)
+
+ -  solve dropEicar (dropEicar)
+    - solve requirements haveEicar -> 'onaccess' and 'installed'
+    - complete - score 6: dropEicar, install
+ -  solve turnOnOnAccess (install, turnOffOnAccess)
+    - solve requirements 'installed' -> 'onaccess' and 'haveEicar'
+      - dropEicar, turnOnOnAccess
+    - complete score 10: install, turnOffOnAccess, dropEicar, turnOnOnAccess
+ -  solve installed (install)
+    - solve requirements 'installed', 'onaccess' -> 'haveEicar'
+      - turnOffOnAccess, dropEicar, turnOnOnAccess
+    - complete score 10: install, turnOffOnAccess, dropEicar, turnOnOnAccess
+ - choose 6: dropEicar, install
+     
+The objective is to select the cheapest sequence which will apply the prerequesites I need.
+
+For example, if the product is already installed, if I need eicar it can be
+obtained by either turning off on-access, droppingEicar, and turning on-access
+back on.  it can also be achieved by uninstalling the product, dropping eicar,
+and installing.  Obviously we want to avoid the uninstall/install step
+because it is much more expensive.  We need to make it obvious to the algorithm too.
+
+I need to determine the linear sequence which satisfies all prerequesites and
+does so from a current state.  Thus, I may have two prerequesites which in turn
+have unmet dependencies and I need to determine the order to apply those steps,
+and their prerequesites.
+
+Another example - the product is installed, and I need to install eicar.  The
+perfect solution is the sequence turnOffOnAccess, dropEicar, turnOnOnAccess.
+Why is that obvious to me?  I think I'm using an iterative process.  The
+suggestions I've offered so far don't work because although I can find
+dropEicar, and turnOffOnAccess - it doesn't give me the turnOnOnAccess required
+to complete the sequence.  I need to work in both directions?
+
+ - candidate requires haveEicar, state is onaccess.
+ - dropEicar provides haveEicar, but requires !onaccess
+ - recursively solve dropEicar, which will lead to turnOffOnAccess (and
+   uninstall, but hopefully we'll select the cheapest)
+ - having solved dropEicar, find elements which provide 'onaccess'.  Use the
+   backwards algorithm outlined, but with target state set to the 'solved'
+   state from dropEicar.  Actually we have to do this anyway to solve any
+   remaining requirements
+
+
+

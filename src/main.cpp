@@ -6,12 +6,14 @@
 #include <gtest/gtest.h>
 
 #include "Steps.h"
+#include "TestException.h"
 
+#include <algorithm>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <algorithm>
-#include <sstream>
-#include <iomanip>
 
 namespace {
     typedef WW::TestStep::value_type attributes_t;
@@ -129,6 +131,10 @@ namespace {
                 {
                     step.description(strip(x[1]));
                 }
+                else if (x[0] == "short")
+                {
+                    step.short_desc(strip(x[1]));
+                }
                 else if (x[0] == "cost")
                 {
                     step.cost(atol(strip(x[1]).c_str()));
@@ -144,11 +150,15 @@ namespace {
     }
 }
 
-TEST(TestSteps, Test)
+
+int main(int argc, char* argv[])
 {
-    WW::Steps steps;
+    static_cast<void>(argc);
+    static_cast<void>(argv);
+WW::Steps steps;
 
     steps.addStep(makeStep( // check access eicar while autoclean is enabled will detect and clean it up
+                "short:accessToEicarDeniedWithClean\n"
                 "dependencies:haveEicar,onaccess,installed,autoclean\n"
                 "changes:!haveEicar\n"
                 "required:yes\n"
@@ -157,6 +167,7 @@ TEST(TestSteps, Test)
                 ));
 
     steps.addStep(makeStep( // check access is denied when configuration is set to deny access
+                "short:accessToEicarDenied\n"
                 "dependencies:haveEicar,onaccess,installed\n"
                 "changes:eicarInQuarantine\n"
                 "required:yes\n"
@@ -165,6 +176,7 @@ TEST(TestSteps, Test)
                 ));
 
     steps.addStep(makeStep( // clean eicar using quarantine
+                "short:cleanQuarantine\n"
                 "dependencies:eicarInQuarantine,!autoclean\n"
                 "changes:!eicarInQuarantine,!haveEicar\n"
                 "required:yes\n"
@@ -173,6 +185,7 @@ TEST(TestSteps, Test)
                 ));
 
     steps.addStep(makeStep( // install the product
+                "short:install\n"
                 "dependencies:!installed\n"
                 "changes:installed,onaccess\n"
                 "cost:5\n"
@@ -180,6 +193,7 @@ TEST(TestSteps, Test)
                 "description:install the product"
                 ));
     steps.addStep(makeStep( // configure autoclean
+                "short:configureAutoClean\n"
                 "dependencies:installed,!autoclean\n"
                 "changes:autoclean\n"
                 "cost:2\n"
@@ -187,6 +201,7 @@ TEST(TestSteps, Test)
                 "description:In the product preferences, configure automatic clean on detection"
                 ));
     steps.addStep(makeStep( // set deny access
+                "short:configureDenyAccess\n"
                 "dependencies:installed\n"
                 "changes:!autoclean\n"
                 "cost:2\n"
@@ -194,6 +209,7 @@ TEST(TestSteps, Test)
                 "description:In the product preferences, configure on-access to deny on detection."
                 ));
     steps.addStep(makeStep( // turn off on-access scanning
+                "short:turnOffOnAccess\n"
                 "dependencies:onaccess,installed\n"
                 "changes:!onaccess\n"
                 "cost:2\n"
@@ -201,6 +217,7 @@ TEST(TestSteps, Test)
                 "description:open the product preferenes, turn off on-access scanning in the on-access tab"
                 ));
     steps.addStep(makeStep( // turn on on-access scanning
+                "short:turnOnOnAccess\n"
                 "dependencies:!onaccess,installed\n"
                 "changes:onaccess\n"
                 "cost:2\n"
@@ -208,6 +225,7 @@ TEST(TestSteps, Test)
                 "description:open the product preferenes, turn on on-access scanning in the on-access tab"
                 ));
     steps.addStep(makeStep( // drop eicar
+                "short:dropEicar\n"
                 "dependencies:!haveEicar,!onaccess\n"
                 "changes:haveEicar\n"
                 "cost:1\n"
@@ -215,9 +233,16 @@ TEST(TestSteps, Test)
                 "description: put eicar onto the drive at /tmp/eicar.com"
                 ));
 
-    steps.calculate();
+    try
+    {
+        steps.calculate();
+    } catch (WW::TestException& e)
+    {
+        std::cerr << "ERROR: " << e.what() << std::endl;
+        return 1;
+    }
 
     std::cout << "dump of plan: " << std::endl << steps.debug_dump() << std::endl;
+
+    return 0;
 }
-
-

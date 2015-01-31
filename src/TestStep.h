@@ -40,11 +40,15 @@ namespace WW
         const std::string& description() const { return m_description; }
         std::string description(const std::string& value) { std::string result = m_description; m_description = value; return result; }
 
+        const std::string& short_desc() const { return m_short; }
+        std::string short_desc(const std::string& value) { std::string result = m_short; m_short = value; return result; }
+
     private:
         operation_t m_operation;
         unsigned int m_cost;
         bool m_required;
         std::string m_description; // describes the steps to take for this test
+        std::string m_short; // short description
         // TODO: automation script
     };
 
@@ -52,14 +56,14 @@ namespace WW
         Stream&
         operator<<(Stream& str, const TestStep& ob)
         {
-            str << "[TestStep " << ob.operation() << ", description=" << ob.description();
-            if (ob.cost() != 0)
-            {
-                str << ", cost=" << ob.cost();
-            }
+            str << "[" << ob.short_desc();
             if (ob.required())
             {
-                str << ", required";
+                str << "*";
+            }
+            if (ob.cost() != 0)
+            {
+                str << " (" << ob.cost() << ")";
             }
             str << "]";
             return str;
