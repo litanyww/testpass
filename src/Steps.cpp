@@ -193,7 +193,7 @@ namespace {
             return cost;
         }
 
-    // This function is O(log N), and thus will not scale well
+    // This function is O(N!), and thus will not scale well
     int
         solveAll(const attributes_t& state, const steplist_t& pending, const stepstore_t& steps, steplist_t& out_result, int depth = 0)
         {

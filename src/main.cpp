@@ -9,106 +9,43 @@
 #include "TestException.h"
 
 #include <algorithm>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
 
+#include <sys/types.h>
+#include <dirent.h>
+
 namespace {
-    typedef WW::TestStep::value_type attributes_t;
+
     typedef std::vector<std::string> strings_t;
-
-    strings_t splitOnLines(const std::string& text)
-    {
-        strings_t result;
-        std::istringstream ist(text);
-        while (ist)
-        {
-            std::string line;
-            if (std::getline(ist, line) && text.size() > 0)
-            {
-                result.push_back(line);
-            }
-        }
-        return result;
-    }
-
-    std::string strip(const std::string& text)
-    {
-        std::string::size_type start = text.find_first_not_of("\r\n\t ");
-        if (start == std::string::npos)
-        {
-            return std::string();
-        }
-        std::string::size_type end = text.find_last_not_of("\r\n\t ");
-        // 0^2
-        return text.substr(start, 1 + end - start);
-    }
-
-    strings_t split(const std::string& text, char ch = ',', size_t max_split = static_cast<size_t>(-1))
-    {
-        // 1,3
-        strings_t result;
-        std::string::size_type start = 0;
-        std::string::size_type pos = text.find(ch);
-        while (pos != std::string::npos && max_split++ > 1)
-        {
-            result.push_back(text.substr(start, pos - start));
-            start = pos + 1;
-            pos = text.find(ch, start);
-        }
-        result.push_back(text.substr(start));
-        return result;
-    }
-    
-    attributes_t attribute_list(const std::string& text)
-    {
-        attributes_t result;
-        std::string::size_type start = 0;
-        std::string::size_type pos = text.find(',');
-        while (pos != std::string::npos)
-        {
-            if (text[start] == '!')
-            {
-                result.forbid(strip(text.substr(start + 1, pos - start - 1)));
-            }
-            else
-            {
-                result.require(strip(text.substr(start, pos - start)));
-            }
-            start = pos + 1;
-            pos = text.find(',', start);
-        }
-        if (text[start] == '!')
-        {
-            result.forbid(strip(text.substr(start + 1)));
-        }
-        else
-        {
-            result.require(strip(text.substr(start)));
-        }
-        return result;
-    }
-
-    std::string toLower(const std::string& text)
-    {
-        std::string result = text;
-        std::transform(result.begin(), result.begin(), result.end(), tolower);
-        return result;
-    }
-
-    bool textToBoolean(const std::string& text)
-    {
-        std::string lcText(toLower(text));
-        return text == "1" || text == "true" || text == "yes";
-    }
-
 
     WW::TestStep makeStep(const std::string& instructions)
     {
         std::istringstream ist(instructions);
         return WW::TestStep(ist);
+    }
+
+    strings_t getFilesInDirectory(const std::string& path)
+    {
+        strings_t result;
+        struct dirent* entry;
+        DIR* dir = opendir(path.c_str());
+        if (dir != 0)
+        {
+            while ((entry = readdir(dir)) != 0)
+            {
+                if (entry->d_name[0] != '.')
+                {
+                    result.push_back(std::string(path) + "/" + entry->d_name);
+                }
+            }
+            closedir(dir);
+        }
+        return result;
     }
 }
 
@@ -116,99 +53,28 @@ int main(int argc, char* argv[])
 {
     static_cast<void>(argc);
     static_cast<void>(argv);
+
+    std::string path = "steps";
+
+    if (argc >= 2)
+    {
+        path = argv[1];
+    }
+
     WW::Steps steps;
 
-    steps.addStep(makeStep( // check access eicar while autoclean is enabled will detect and clean it up
-                "short:accessToEicarDeniedWithClean\n"
-                "dependencies:haveEicar,onaccess,installed,autoclean\n"
-                "changes:!haveEicar,!eicarInQuarantine\n"
-                "required:yes\n"
-                "cost:4\n"
-                "description: access /tmp/eicar.com.  Access will be denied.  After a moment, the file /tmp/eicar.com will be removed"
-                ));
+    strings_t files = getFilesInDirectory(path); // FIXME: get argument from argv
 
-    steps.addStep(makeStep( // check access is denied when configuration is set to deny access
-                "short:accessToEicarDenied\n"
-                "dependencies:haveEicar,onaccess,installed\n"
-                "changes:eicarInQuarantine\n"
-                "required:yes\n"
-                "cost:4\n"
-                "description: access /tmp/eicar.com.  Access will be denied."
-                ));
-
-    steps.addStep(makeStep( // clean eicar using quarantine
-                "short:cleanQuarantine\n"
-                "dependencies:eicarInQuarantine,!autoclean\n"
-                "changes:!eicarInQuarantine,!haveEicar\n"
-                "required:yes\n"
-                "cost:3\n"
-                "description: Check the quarantine.  Details about the file will be displayed.  Click the item, authenticate and choose 'Clean'"
-                ));
-
-    steps.addStep(makeStep( // install the product
-                "short:install\n"
-                "dependencies:!installed\n"
-                "changes:installed,onaccess\n"
-                "cost:5\n"
-                "required:no\n" // force this as a requirement; meaning it'll happen before other test steps
-                "description:install the product"
-                ));
-    steps.addStep(makeStep( // install the product
-                "short:uninstall\n"
-                "dependencies:installed\n"
-                "changes:!installed,uninstalled\n"
-                "cost:5\n"
-                "required:no\n" // force this as a requirement; meaning it'll happen before other test steps
-                "description:uninstall the product"
-                ));
-    steps.addStep(makeStep( // check the product is fully uninstalled
-                "short:checkUninstall\n"
-                "dependencies:uninstalled,!installed\n"
-                "changes:!uninstalled\n"
-                "cost:2\n"
-                "required:yes\n"
-                "description:Check none of our processes are running, and that all components have been removed"
-                ));
-    steps.addStep(makeStep( // configure autoclean
-                "short:configureAutoClean\n"
-                "dependencies:installed,!autoclean\n"
-                "changes:autoclean\n"
-                "cost:2\n"
-                "required:no\n"
-                "description:In the product preferences, configure automatic clean on detection"
-                ));
-    steps.addStep(makeStep( // set deny access
-                "short:configureDenyAccess\n"
-                "dependencies:installed\n"
-                "changes:!autoclean\n"
-                "cost:2\n"
-                "required:no\n"
-                "description:In the product preferences, configure on-access to deny on detection."
-                ));
-    steps.addStep(makeStep( // turn off on-access scanning
-                "short:turnOffOnAccess\n"
-                "dependencies:onaccess,installed\n"
-                "changes:!onaccess\n"
-                "cost:2\n"
-                "required:no\n"
-                "description:open the product preferenes, turn off on-access scanning in the on-access tab"
-                ));
-    steps.addStep(makeStep( // turn on on-access scanning
-                "short:turnOnOnAccess\n"
-                "dependencies:!onaccess,installed\n"
-                "changes:onaccess\n"
-                "cost:2\n"
-                "required:no\n"
-                "description:open the product preferenes, turn on on-access scanning in the on-access tab"
-                ));
-    steps.addStep(makeStep( // drop eicar
-                "short:dropEicar\n"
-                "dependencies:!haveEicar,!onaccess\n"
-                "changes:haveEicar\n"
-                "cost:1\n"
-                "required:no\n"
-                "description: put eicar onto the drive at /tmp/eicar.com"
-                ));
+    for (strings_t::const_iterator it = files.begin(); it != files.end(); ++it)
+    {
+        std::ifstream ist(it->c_str());
+        if (ist.good())
+        {
+            WW::TestStep step(ist);
+            // std::cout << "File: " << *it << ": " << step << std::endl;
+            steps.addStep(step);
+        }
+    }
 
     try
     {
