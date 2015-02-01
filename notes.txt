@@ -197,3 +197,25 @@ solve:
  - with each solved step, insert changeless pending steps into the chain.
    Actually, that's not going to be necessary if we calculate overall cost for
    all possible sequences.
+
+-----
+
+I've added a test for accessing an excluded eicar.  I was expecting it to drop
+the eicar in the exclude folder before installing the product; or the previous
+time it disabled on-access, but it explicitly disabled on-access to drop that
+eicar.
+
+The solve() function is working, since the steps are correct.  It is solveAll()
+which may not, since I don't believe it selected an optimal route.
+
+This may kind-of highlight an issue to consider; in some respects the solution
+selected can be considered superior - eicar is dropped close to where it is
+used; the current solveAll() function would have dropped it before
+installation.
+
+Ah ha!  I understand now.  solve() doesn't order all steps, but only required
+ones.  The changes necessary to support that required step are only considered
+to proceed from the previous required step to the candidate.  Thus, changes are
+made close to where the test happens.  I think this is actually a preferred
+outcome since it provides the tester a measure of context on what they're
+testing.
