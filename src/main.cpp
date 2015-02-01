@@ -104,58 +104,19 @@ namespace {
         return text == "1" || text == "true" || text == "yes";
     }
 
+
     WW::TestStep makeStep(const std::string& instructions)
     {
-        WW::TestStep step;
-        step.required(true);
-
-        strings_t lines = splitOnLines(instructions);
-        for (strings_t::const_iterator it = lines.begin(); it != lines.end(); ++it)
-        {
-            strings_t x = split(*it, ':', 2);
-            if (x.size() == 2)
-            {
-                if (x[0] == "dependencies" || x[0] == "requirements")
-                {
-                    step.dependencies(attribute_list(x[1]));
-                }
-                else if (x[0] == "changes")
-                {
-                    step.changes(attribute_list(x[1]));
-                }
-                else if (x[0] == "required")
-                {
-                    step.required(textToBoolean(x[1]));
-                }
-                else if (x[0] == "description")
-                {
-                    step.description(strip(x[1]));
-                }
-                else if (x[0] == "short")
-                {
-                    step.short_desc(strip(x[1]));
-                }
-                else if (x[0] == "cost")
-                {
-                    step.cost(atol(strip(x[1]).c_str()));
-                }
-                else
-                {
-                    std::cerr << "ERROR: unrecognized token '" << x[0] << "'" << std::endl;
-                }
-            }
-        }
-        std::cerr << "Step=" << step << std::endl;
-        return step;
+        std::istringstream ist(instructions);
+        return WW::TestStep(ist);
     }
 }
-
 
 int main(int argc, char* argv[])
 {
     static_cast<void>(argc);
     static_cast<void>(argv);
-WW::Steps steps;
+    WW::Steps steps;
 
     steps.addStep(makeStep( // check access eicar while autoclean is enabled will detect and clean it up
                 "short:accessToEicarDeniedWithClean\n"

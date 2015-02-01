@@ -21,6 +21,7 @@ namespace WW
     public:
         TestStep();
         ~TestStep();
+        TestStep(std::istream& ist);
         TestStep(const TestStep& copy);
         TestStep& operator=(const TestStep& copy);
 #if __cplusplus >= 201103L
