@@ -188,5 +188,12 @@ to complete the sequence.  I need to work in both directions?
    state from dropEicar.  Actually we have to do this anyway to solve any
    remaining requirements
 
+-----
 
+Fresh off my success solving a specific step, there are additional tasks to
+solve:
 
+ - pick order of required steps which minimises overall cost
+ - with each solved step, insert changeless pending steps into the chain.
+   Actually, that's not going to be necessary if we calculate overall cost for
+   all possible sequences.

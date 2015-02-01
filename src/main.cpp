@@ -160,7 +160,7 @@ WW::Steps steps;
     steps.addStep(makeStep( // check access eicar while autoclean is enabled will detect and clean it up
                 "short:accessToEicarDeniedWithClean\n"
                 "dependencies:haveEicar,onaccess,installed,autoclean\n"
-                "changes:!haveEicar\n"
+                "changes:!haveEicar,!eicarInQuarantine\n"
                 "required:yes\n"
                 "cost:4\n"
                 "description: access /tmp/eicar.com.  Access will be denied.  After a moment, the file /tmp/eicar.com will be removed"
@@ -191,6 +191,22 @@ WW::Steps steps;
                 "cost:5\n"
                 "required:no\n" // force this as a requirement; meaning it'll happen before other test steps
                 "description:install the product"
+                ));
+    steps.addStep(makeStep( // install the product
+                "short:uninstall\n"
+                "dependencies:installed\n"
+                "changes:!installed,uninstalled\n"
+                "cost:5\n"
+                "required:no\n" // force this as a requirement; meaning it'll happen before other test steps
+                "description:uninstall the product"
+                ));
+    steps.addStep(makeStep( // check the product is fully uninstalled
+                "short:checkUninstall\n"
+                "dependencies:uninstalled,!installed\n"
+                "changes:!uninstalled\n"
+                "cost:2\n"
+                "required:yes\n"
+                "description:Check none of our processes are running, and that all components have been removed"
                 ));
     steps.addStep(makeStep( // configure autoclean
                 "short:configureAutoClean\n"

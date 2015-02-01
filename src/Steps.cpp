@@ -12,11 +12,32 @@
 #include <deque>
 #include <iostream>
 
+#define DEBUG
 #define DBGOUT(_x) do { std::cerr << "DEBUG: " << _x << std::endl; } while (0)
 
 typedef WW::TestStep::value_type attributes_t;
 typedef std::list<const WW::TestStep*> steplist_t;
 typedef std::list<WW::TestStep> stepstore_t;
+
+namespace std
+{
+    std::ostream& operator<<(std::ostream& ost, const steplist_t& list) {
+        ost << "[";
+        bool comma = false;
+        for (steplist_t::const_iterator it = list.begin(); it != list.end(); ++it)
+        {
+            if (comma) {
+                ost << ", ";
+            }
+            else {
+                comma = true;
+            }
+            ost << **it;
+        }
+        ost << "]";
+        return ost;
+    }
+}
 
 class WW::Steps::Impl
 {
@@ -26,8 +47,6 @@ public:
     Impl()
         : m_allSteps()
         , m_chain()
-        , m_pending()
-        , m_state()
         {}
     ~Impl() {}
 
@@ -47,8 +66,6 @@ public:
 private:
     stepstore_t m_allSteps;
     steplist_t m_chain;
-    mutable steplist_t m_pending; // steps which still need to be scheduled
-    attributes_t m_state;
 };
 
 std::string
@@ -66,34 +83,6 @@ WW::Steps::Impl::debug_dump() const
 }
 
 namespace {
-    const WW::TestStep*
-        cheapest_next_candidate(const attributes_t& state, const steplist_t& pending)
-        {
-            const WW::TestStep* result = 0;
-            unsigned int fewest_attributes = 0;
-            for (steplist_t::const_iterator it = pending.begin(); it != pending.end(); ++it)
-            {
-                attributes_t diffs = (*it)->operation().getDifferences(state);
-                size_t count = diffs.size();
-                if (result == 0)
-                {
-                    result = *it;
-                    fewest_attributes = count;
-                    continue;
-                }
-                else if (count <= fewest_attributes)
-                {
-                    unsigned int cost = (*it)->cost();
-
-                    if (count < fewest_attributes || cost < result->cost())
-                    {
-                        result = *it;
-                        fewest_attributes = count;
-                    }
-                }
-            }
-            return result;
-        }
 
     steplist_t findStepsProviding(const stepstore_t& steps, const attributes_t& attributes)
     {
@@ -108,6 +97,34 @@ namespace {
         return result;
     }
 
+    void
+        applyState(attributes_t& state, const steplist_t& steps)
+        {
+            for (steplist_t::const_iterator it = steps.begin(); it != steps.end(); ++it) {
+#ifdef DEBUG
+                if (!(*it)->operation().isValid(state))
+                {
+                    DBGOUT("ERROR: unexpectedly unable to apply solved state " << *(*it) << " " << (*it)->operation() << " onto " << state);
+                    throw WW::TestException("Unable to apply cheapest solution");
+                }
+#endif
+                (*it)->operation().modify(state);
+            }
+        }
+
+    void
+        remove(const WW::TestStep* item, steplist_t& list)
+        {
+            for (steplist_t::iterator it = list.begin(); it != list.end(); ++it)
+            {
+                if (*it == item)
+                {
+                    list.erase(it);
+                    break;
+                }
+            }
+        }
+
     /** solve
      * @params state        starting state
      * @params target       set of desired attributes
@@ -116,10 +133,10 @@ namespace {
      *
      * Determine the cheapest set of steps to iterate from state to target.  This function will be called recursively
      */
-    const int
+    int
         solve(const attributes_t& state, const attributes_t& target, const stepstore_t& steps, steplist_t& out_result)
         {
-            DBGOUT("solve(state=" << state << ", target=" << target);
+            // DBGOUT("solve(state=" << state << ", target=" << target);
             attributes_t missing;
             state.differences(target, missing);
             if (missing.size() == 0)
@@ -169,36 +186,52 @@ namespace {
             // this function recursively at this point safely because we can't choose the same path, that set of attributes should already be satisfied.
             
             attributes_t candidateState = state;
-            for (steplist_t::const_iterator it = out_result.begin(); it != out_result.end(); ++it)
-            {
-#ifdef DEBUG
-                if (!(*it)->operation().isValid(candidateState))
-                {
-                    DBGOUT("ERROR: unexpectedly unable to apply solved state " << *(*it) << " onto " << candidateState);
-                    throw WW::TestException("Unable to apply cheapest solution");
-                }
-#endif
-                (*it)->operation().modify(candidateState);
-            }
+            applyState(candidateState, out_result);
             steplist_t otherBits;
             cost += solve(candidateState, target, steps, otherBits);
             out_result.splice(out_result.end(), otherBits);
             return cost;
         }
 
-    void
-        remove(const WW::TestStep* item, steplist_t& list)
+    // This function is O(log N), and thus will not scale well
+    int
+        solveAll(const attributes_t& state, const steplist_t& pending, const stepstore_t& steps, steplist_t& out_result, int depth = 0)
         {
-            for (steplist_t::iterator it = list.begin(); it != list.end(); ++it)
+            // DBGOUT("(" << depth << ") solveAll(state=" << state << ", pending=" << pending << ", steps, out_result, depth)");
+            out_result.clear();
+            int cheapest = 0;
+            for (steplist_t::const_iterator it = pending.begin(); it != pending.end(); ++it)
             {
-                if (*it == item)
+                attributes_t newState = state;
+                steplist_t solution;
+                int cost = solve(state, (*it)->operation().dependencies(), steps, solution);
+                solution.push_back(*it);
+                cost += (*it)->cost();
+                applyState(newState, solution);
+                // DBGOUT("(" << depth << ")   first: " << cost << " " << **it << " " << solution);
+
+                if (pending.size() > 1)
                 {
-                    list.erase(it);
-                    break;
+                    steplist_t newPending = pending;
+                    remove(*it, newPending);
+
+                    steplist_t rest;
+                    cost += solveAll(newState, newPending, steps, rest, depth + 1);
+                    solution.splice(solution.end(), rest);
+                }
+                // DBGOUT("(" << depth << ")   full: " << cost << " " << solution);
+
+                if (solution.size() > 0 && (out_result.size() == 0 || cost < cheapest))
+                {
+                    // DBGOUT("(" << depth << ")  new cheapest " << cost << " " << solution);
+                    out_result = solution;
+                    cheapest = cost;
                 }
             }
+            // DBGOUT("(" << depth << ") solved " << cheapest << ": " << out_result);
+            return cheapest;
         }
-
+    
     void
         clone_required(const stepstore_t& allSteps, steplist_t& list)
         {
@@ -212,37 +245,6 @@ namespace {
                 }
             }
         }
-
-    void
-        clone(const stepstore_t& allSteps, steplist_t& list)
-        {
-            list.clear();
-            for (stepstore_t::const_iterator it = allSteps.begin(); it != allSteps.end(); ++it)
-            {
-                const WW::TestStep& step = *it;
-                list.push_back(&step);
-            }
-        }
-}
-
-namespace std
-{
-    std::ostream& operator<<(std::ostream& ost, const steplist_t& list) {
-        ost << "[";
-        bool comma = false;
-        for (steplist_t::const_iterator it = list.begin(); it != list.end(); ++it)
-        {
-            if (comma) {
-                ost << ", ";
-            }
-            else {
-                comma = true;
-            }
-            ost << **it;
-        }
-        ost << "]";
-        return ost;
-    }
 }
 
 void
@@ -250,29 +252,11 @@ WW::Steps::Impl::calculate()
 {
     //DBGOUT("calculate()");
 
-    clone_required(m_allSteps, m_pending);
-    while (!m_pending.empty())
-    {
-        const TestStep* candidate = cheapest_next_candidate(m_state, m_pending);
+    steplist_t pending;
+    clone_required(m_allSteps, pending);
 
-        DBGOUT("resolving: " << *candidate);
-        steplist_t solved;
-        solve(m_state, candidate->operation().dependencies(), m_allSteps, solved);
-        if (solved.size() == 0)
-        {
-            throw WW::TestException("No solution");
-        }
-        DBGOUT("  solved dependencies: " << solved);
-        for (steplist_t::const_iterator it = solved.begin(); it != solved.end(); ++it)
-        {
-            (*it)->operation().modify(m_state);
-            remove(*it, m_pending);
-        }
-        m_chain.splice(m_chain.end(), solved);
-        remove(candidate, m_pending);
-        m_chain.push_back(candidate);
-        candidate->operation().modify(m_state);
-    }
+    attributes_t state;
+    solveAll(state, pending, m_allSteps, m_chain);
 }
 
 ///
