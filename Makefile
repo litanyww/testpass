@@ -58,4 +58,4 @@ tests : $(TEST_OBJS) $(OBJ_DIR)/gtest-all.o $(STEPS_TARGET)
 	$(CXX) $(CXXFLAGS) $(LXXFLAGS) -o $@ $^ -lpthread
 
 clean :
-	rm -rf tests objs $(STEPS_TARGET)
+	rm -rf tests compile objs $(STEPS_TARGET)

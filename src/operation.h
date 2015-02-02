@@ -15,6 +15,7 @@ namespace WW
         {
         public:
             typedef Attributes<_T> value_type;
+            typedef typename value_type::size_type size_type;
         public:
             ~Operation() {}
             Operation() : m_dependencies(), m_changes() {}
