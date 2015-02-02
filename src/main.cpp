@@ -80,9 +80,9 @@ int main(int argc, char* argv[])
     static_cast<void>(argc);
     static_cast<void>(argv);
 
-    std::string path = "steps";
     unsigned int complexity = 5; // default complexity
 
+    bool loaded = false;
     WW::Steps steps;
 
     for (unsigned int arg = 1 ; arg < argc ; ++arg)
@@ -106,6 +106,7 @@ int main(int argc, char* argv[])
                         else if (arg + 1 < argc) {
                             addDirectory(argv[++arg], required);
                         }
+                        loaded = true;
                         steps.addRequired(required);
                     }
                     break;
@@ -120,14 +121,17 @@ int main(int argc, char* argv[])
             WW::Steps items;
             addDirectory(argv[arg], items);
             steps.add(items);
+            loaded = true;
         }
     }
 
-
+    if (!loaded) {
+        addDirectory("steps", steps);
+    }
 
     try
     {
-        steps.calculate();
+        steps.calculate(complexity);
     } catch (WW::TestException& e)
     {
         std::cerr << "ERROR: " << e.what() << std::endl;

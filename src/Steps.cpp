@@ -77,7 +77,12 @@ WW::Steps::Impl::debug_dump() const
 
     for (steplist_t::const_iterator it = m_chain.begin(); it != m_chain.end(); ++it)
     {
-        ost << ++item << ". " << (*it)->description() << std::endl;
+        if ((*it)->script().empty()) {
+            ost << ++item << ". " << (*it)->short_desc() << std::endl;
+        }
+        else {
+            ost << ++item << "* " << (*it)->short_desc() << std::endl;
+        }
     }
 
     return ost.str();
