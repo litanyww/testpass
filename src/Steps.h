@@ -36,8 +36,10 @@ namespace WW
         Steps& operator=(const Steps& copy);
 
     public:
+        void add(const Steps& steps);
+        void addRequired(const Steps& steps);
         void addStep(const TestStep& step);
-        void calculate(); // Generate the test pass
+        void calculate(unsigned int complexity = 1); // Generate the test pass
         std::string debug_dump() const; // Temporary function which will dump the content to a string
 
     private:

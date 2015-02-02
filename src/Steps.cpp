@@ -55,13 +55,14 @@ private: // forbid copy and assignment
     Impl& operator=(const Impl& copy);
 
 public:
+    void add(const Steps& steps, bool allAreRequired = false);
     stepstore_t& allSteps() { return m_allSteps; }
     const stepstore_t& allSteps() const { return m_allSteps; }
     steplist_t& chain() { return m_chain; }
     const steplist_t& chain() const { return m_chain; }
 
     std::string debug_dump() const;
-    void calculate();
+    void calculate(unsigned int complexity);
 
 private:
     stepstore_t m_allSteps;
@@ -130,7 +131,7 @@ namespace {
      * @params target       set of desired attributes
      * @params steps        list of available steps
      * @params out_result   results to return
-     *
+
      * Determine the cheapest set of steps to iterate from state to target.  This function will be called recursively
      */
     int
@@ -184,7 +185,7 @@ namespace {
             // cheapest should at this point be a sequence starting from
             // `state`, but may not get us all the way to 'target'.  We call
             // this function recursively at this point safely because we can't choose the same path, that set of attributes should already be satisfied.
-            
+
             attributes_t candidateState = state;
             applyState(candidateState, out_result);
             steplist_t otherBits;
@@ -193,11 +194,11 @@ namespace {
             return cost;
         }
 
-    // This function is O(N!), and thus will not scale well
+    // If count is unlimited, this function is O(N!), and thus will not scale well.
     int
-        solveAll(const attributes_t& state, const steplist_t& pending, const stepstore_t& steps, steplist_t& out_result, int depth = 0)
+        solveAll(const attributes_t& state, const steplist_t& pending, const stepstore_t& steps, steplist_t& out_result, int count = 1)
         {
-            // DBGOUT("(" << depth << ") solveAll(state=" << state << ", pending=" << pending << ", steps, out_result, depth)");
+            // DBGOUT("(" << count << ") solveAll(state=" << state << ", pending=" << pending << ", steps, out_result, count)");
             out_result.clear();
             int cheapest = 0;
             for (steplist_t::const_iterator it = pending.begin(); it != pending.end(); ++it)
@@ -208,30 +209,30 @@ namespace {
                 solution.push_back(*it);
                 cost += (*it)->cost();
                 applyState(newState, solution);
-                // DBGOUT("(" << depth << ")   first: " << cost << " " << **it << " " << solution);
+                // DBGOUT("(" << count << ")   first: " << cost << " " << **it << " " << solution);
 
-                if (pending.size() > 1)
+                if (pending.size() > 1 && count > 0)
                 {
                     steplist_t newPending = pending;
                     remove(*it, newPending);
 
                     steplist_t rest;
-                    cost += solveAll(newState, newPending, steps, rest, depth + 1);
+                    cost += solveAll(newState, newPending, steps, rest, count - 1);
                     solution.splice(solution.end(), rest);
                 }
-                // DBGOUT("(" << depth << ")   full: " << cost << " " << solution);
+                // DBGOUT("(" << count << ")   full: " << cost << " " << solution);
 
                 if (solution.size() > 0 && (out_result.size() == 0 || cost < cheapest))
                 {
-                    // DBGOUT("(" << depth << ")  new cheapest " << cost << " " << solution);
+                    // DBGOUT("(" << count << ")  new cheapest " << cost << " " << solution);
                     out_result = solution;
                     cheapest = cost;
                 }
             }
-            // DBGOUT("(" << depth << ") solved " << cheapest << ": " << out_result);
+            // DBGOUT("(" << count << ") solved " << cheapest << ": " << out_result);
             return cheapest;
         }
-    
+
     void
         clone_required(const stepstore_t& allSteps, steplist_t& list)
         {
@@ -248,7 +249,7 @@ namespace {
 }
 
 void
-WW::Steps::Impl::calculate()
+WW::Steps::Impl::calculate(unsigned int complexity)
 {
     //DBGOUT("calculate()");
 
@@ -256,7 +257,32 @@ WW::Steps::Impl::calculate()
     clone_required(m_allSteps, pending);
 
     attributes_t state;
-    solveAll(state, pending, m_allSteps, m_chain);
+    while (pending.size() > 0)
+    {
+        steplist_t solution;
+        solveAll(state, pending, m_allSteps, solution, complexity);
+        applyState(state, solution);
+        for (steplist_t::const_iterator it = solution.begin(); it != solution.end(); ++it)
+        {
+            (*it)->operation().modify(state);
+            remove(*it, pending);
+        }
+        m_chain.splice(m_chain.end(), solution);
+    }
+}
+
+void
+WW::Steps::Impl::add(const WW::Steps& steps, bool allAreRequired)
+{
+    const stepstore_t& store = steps.m_pimpl->m_allSteps;
+    for (stepstore_t::const_iterator it = store.begin(); it != store.end(); ++it)
+    {
+        WW::TestStep copy = *it;
+        if (allAreRequired) {
+            copy.required(true);
+        }
+        m_allSteps.push_back(copy);
+    }
 }
 
 ///
@@ -286,7 +312,19 @@ WW::Steps::debug_dump() const
 }
 
 void
-WW::Steps::calculate()
+WW::Steps::calculate(unsigned int complexity)
 {
-    m_pimpl->calculate();
+    m_pimpl->calculate(complexity);
+}
+
+void
+WW::Steps::add(const Steps& steps)
+{
+    m_pimpl->add(steps, false);
+}
+
+void
+WW::Steps::addRequired(const Steps& steps)
+{
+    m_pimpl->add(steps, true);
 }

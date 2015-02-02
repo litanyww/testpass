@@ -16,37 +16,63 @@
 #include <string>
 #include <vector>
 
-#include <sys/types.h>
 #include <dirent.h>
+#include <strings.h>
+#include <sys/types.h>
 
 namespace {
 
     typedef std::vector<std::string> strings_t;
 
-    WW::TestStep makeStep(const std::string& instructions)
-    {
-        std::istringstream ist(instructions);
-        return WW::TestStep(ist);
-    }
-
-    strings_t getFilesInDirectory(const std::string& path)
-    {
-        strings_t result;
-        struct dirent* entry;
-        DIR* dir = opendir(path.c_str());
-        if (dir != 0)
+    strings_t
+        getFilesInDirectory(const std::string& path)
         {
-            while ((entry = readdir(dir)) != 0)
+            strings_t result;
+            struct dirent* entry;
+            DIR* dir = opendir(path.c_str());
+            if (dir != 0)
             {
-                if (entry->d_name[0] != '.')
+                while ((entry = readdir(dir)) != 0)
                 {
-                    result.push_back(std::string(path) + "/" + entry->d_name);
+                    if (entry->d_name[0] != '.')
+                    {
+                        result.push_back(std::string(path) + "/" + entry->d_name);
+                    }
+                }
+                closedir(dir);
+            }
+            return result;
+        }
+
+    void
+        addDirectory(const std::string& path, WW::Steps& out_steps)
+        {
+            strings_t files = getFilesInDirectory(path);
+
+            for (strings_t::const_iterator it = files.begin(); it != files.end(); ++it)
+            {
+                std::ifstream ist(it->c_str());
+                if (ist.good())
+                {
+                    WW::TestStep step(ist);
+                    // std::cout << "File: " << *it << ": " << step << std::endl;
+                    out_steps.addStep(step);
                 }
             }
-            closedir(dir);
         }
-        return result;
-    }
+    void
+        usage(const std::string& program_path)
+        {
+            std::string::size_type slash = program_path.find_last_of('/');
+            std::string name = (slash == std::string::npos) ? program_path : program_path.substr(slash + 1);
+
+            std::cout << "Usage: " << name << " [OPTIONS]... DIRECTORY..." << std::endl
+            << "Construct a test pass based on test pass fragments" << std::endl
+            << std::endl
+            << "Options:" << std::endl
+            << " -c\t\tcomplexity (default 5) higher for more suscinct results which takes longer to generate" << std::endl;
+        }
+
 }
 
 int main(int argc, char* argv[])
@@ -55,26 +81,49 @@ int main(int argc, char* argv[])
     static_cast<void>(argv);
 
     std::string path = "steps";
-
-    if (argc >= 2)
-    {
-        path = argv[1];
-    }
+    unsigned int complexity = 5; // default complexity
 
     WW::Steps steps;
 
-    strings_t files = getFilesInDirectory(path); // FIXME: get argument from argv
-
-    for (strings_t::const_iterator it = files.begin(); it != files.end(); ++it)
+    for (unsigned int arg = 1 ; arg < argc ; ++arg)
     {
-        std::ifstream ist(it->c_str());
-        if (ist.good())
+        if (argv[arg][0] == '-') {
+            switch (argv[arg][1]) {
+                case 'c': // complexity
+                    if (argv[arg][2] != '\0') {
+                        complexity = atoi(argv[arg] + 2);
+                    }
+                    else if (arg + 1 < argc) {
+                        complexity = atoi(argv[++arg]);
+                    }
+                    break;
+                case 'r': // required tests loaded from a specific folder
+                    {
+                        WW::Steps required;
+                        if (argv[arg][2] != '\0') {
+                            addDirectory(argv[arg] + 2, required);
+                        }
+                        else if (arg + 1 < argc) {
+                            addDirectory(argv[++arg], required);
+                        }
+                        steps.addRequired(required);
+                    }
+                    break;
+
+                default:
+                    usage(argv[0]);
+                    return 0;
+            }
+        }
+        else
         {
-            WW::TestStep step(ist);
-            // std::cout << "File: " << *it << ": " << step << std::endl;
-            steps.addStep(step);
+            WW::Steps items;
+            addDirectory(argv[arg], items);
+            steps.add(items);
         }
     }
+
+
 
     try
     {
