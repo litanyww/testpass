@@ -70,7 +70,9 @@ namespace {
             << "Construct a test pass based on test pass fragments" << std::endl
             << std::endl
             << "Options:" << std::endl
-            << " -c\t\tcomplexity (default 5) higher for more suscinct results which takes longer to generate" << std::endl;
+            << " -c\t\tcomplexity (default 5) higher for more suscinct results which takes longer to generate" << std::endl
+            << " -r\t\tspecify directory containing required tests" << std::endl
+            << std::endl;
         }
 
 }

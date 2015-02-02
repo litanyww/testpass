@@ -63,7 +63,7 @@ namespace WW
             std::pair<iterator,bool> insert(const value_type& val) {
                 iterator it = m_contents.find(val);
                 if (it != m_contents.end()) {
-                   if (it->isForbidden() != val.isForbidden()) {
+                   if (it->isForbidden() != val.isForbidden() || *it != val) {
                        iterator hint = it;
                        ++hint;
                        m_contents.erase(it);
@@ -109,8 +109,8 @@ namespace WW
                         }
                     }
                 }
-            iterator find(const value_type& val) const { return m_contents.find(val); }
-            iterator find(const _T& val) const { return m_contents.find(value_type(val)); }
+            iterator find(const value_type& val) const { iterator result = m_contents.find(val); return (*result == val) ? result : m_contents.end();}
+            iterator find(const _T& val) const { iterator result = m_contents.find(value_type(val)); return (result->value() == val) ? result : m_contents.end();}
             void clear() { return m_contents.clear(); }
             bool operator!=(const Attributes& rhs) const { return !(*this == rhs); }
             bool operator==(const Attributes& rhs) const {
@@ -137,7 +137,7 @@ namespace WW
                 for (const_iterator it = needle.begin(); it != needleEnd; ++it)
                 {
                     const_iterator match = m_contents.find(*it);
-                    if (match == notfound)
+                    if (match == notfound || match->value() != it->value())
                     {
                         if (!it->isForbidden())
                         {
@@ -170,7 +170,7 @@ namespace WW
                 for (const_iterator it = needle.begin(); it != needleEnd; ++it)
                 {
                     const_iterator match = m_contents.find(*it);
-                    if (match != notfound)
+                    if (match != notfound && match->value() == it->value())
                     {
                         if (it->isForbidden() != match->isForbidden())
                         {
@@ -197,7 +197,7 @@ namespace WW
                 {
                     bool forbidden = it->isForbidden();
                     const_iterator match = m_contents.find(*it);
-                    if (match == notfound) {
+                    if (match == notfound || match->value() != it->value()) {
                         if (!forbidden) {
                             out_result.insert(*it);
                         }

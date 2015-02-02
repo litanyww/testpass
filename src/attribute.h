@@ -8,6 +8,17 @@
 
 #include <ostream>
 
+namespace {
+    template <typename _T>
+        _T noEquals(const _T& val) {
+            typename _T::size_type e = val.find_first_of("=");
+            if (e == _T::npos) {
+                return val;
+            }
+            return val.substr(0, e);
+        }
+}
+
 namespace WW
 {
     template <class _T>
@@ -20,7 +31,7 @@ namespace WW
             /// use our own set comparison functor to disallow the same value to be forbidden and not-forbidden
             struct setCompare {
                 bool operator() (const Attribute& lhs, const Attribute& rhs) const {
-                    return lhs.value() < rhs.value();
+                    return noEquals(lhs.value()) < noEquals(rhs.value());
                 }
             };
 
