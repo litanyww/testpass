@@ -17,12 +17,15 @@ TEST(TestStep, LoadFromStream)
             "changes:awesomeness,!fear\n"
             "cost:2\n"
             "required:yes\n"
-            "description:Descriptive Long Description\n");
+            "description:Descriptive Long Description\n"
+            "script:echo \"Hello, World!\"\n");
+
 
     WW::TestStep step(ist);
 
     ASSERT_EQ("NiceShortDescription", step.short_desc());
     ASSERT_EQ("Descriptive Long Description", step.description());
+    ASSERT_EQ("echo \"Hello, World!\"", step.script());
     ASSERT_EQ(2, step.cost());
     ASSERT_TRUE(step.required());
     ASSERT_EQ(2, step.operation().changes().size());

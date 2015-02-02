@@ -197,6 +197,10 @@ WW::TestStep::TestStep(std::istream& ist)
             {
                 m_short = strip(value);
             }
+            else if (key == "script")
+            {
+                m_script = strip(value);
+            }
             else if (key == "cost")
             {
                 m_cost = atol(strip(value).c_str());

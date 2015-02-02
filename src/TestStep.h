@@ -44,12 +44,16 @@ namespace WW
         const std::string& short_desc() const { return m_short; }
         std::string short_desc(const std::string& value) { std::string result = m_short; m_short = value; return result; }
 
+        const std::string& script() const { return m_script; }
+        std::string script(const std::string& value) { std::string result = m_script; m_script = value; return result; }
+
     private:
         operation_t m_operation;
         unsigned int m_cost;
         bool m_required;
         std::string m_description; // describes the steps to take for this test
         std::string m_short; // short description
+        std::string m_script;
         // TODO: automation script
     };
 
