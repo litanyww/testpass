@@ -171,7 +171,7 @@ WW::TestStep::TestStep(std::istream& ist)
             }
             else if (x[0] == "required")
             {
-                m_required = textToBoolean(x[1]);
+                m_required = textToBoolean(strip(x[1]));
             }
             else if (x[0] == "description")
             {
