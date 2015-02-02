@@ -129,9 +129,10 @@ int main(int argc, char* argv[])
         addDirectory("steps", steps);
     }
 
+    WW::StepList solution;
     try
     {
-        steps.calculate(complexity);
+        solution = steps.calculate(complexity);
     } catch (WW::TestException& e)
     {
         std::cerr << "ERROR: " << e.what() << std::endl;
@@ -139,6 +140,18 @@ int main(int argc, char* argv[])
     }
 
     std::cout << "dump of plan: " << std::endl << steps.debug_dump() << std::endl;
+    unsigned int item = 0;
+
+    for (WW::StepList::const_iterator it = solution.begin(); it != solution.end(); ++it)
+    {
+        if (it->script().empty()) {
+            std::cout << ++item << ". " << it->short_desc() << std::endl;
+        }
+        else {
+            std::cout << ++item << "* " << it->short_desc() << std::endl;
+        }
+    }
+
 
     return 0;
 }

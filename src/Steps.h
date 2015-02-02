@@ -7,6 +7,7 @@
 #define INCLUDE_WW_STEPS_HEADER
 
 #include "TestStep.h"
+#include "StepList.h"
 
 namespace WW
 {
@@ -39,7 +40,7 @@ namespace WW
         void add(const Steps& steps);
         void addRequired(const Steps& steps);
         void addStep(const TestStep& step);
-        void calculate(unsigned int complexity = 1); // Generate the test pass
+        StepList calculate(unsigned int complexity = 1) const; // Generate the test pass
         std::string debug_dump() const; // Temporary function which will dump the content to a string
 
     private:

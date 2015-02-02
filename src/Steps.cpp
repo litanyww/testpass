@@ -62,7 +62,7 @@ public:
     const steplist_t& chain() const { return m_chain; }
 
     std::string debug_dump() const;
-    void calculate(unsigned int complexity);
+    steplist_t calculate(unsigned int complexity) const;
 
 private:
     stepstore_t m_allSteps;
@@ -253,12 +253,13 @@ namespace {
         }
 }
 
-void
-WW::Steps::Impl::calculate(unsigned int complexity)
+steplist_t
+WW::Steps::Impl::calculate(unsigned int complexity) const
 {
     //DBGOUT("calculate()");
 
     steplist_t pending;
+    steplist_t chain;
     clone_required(m_allSteps, pending);
 
     attributes_t state;
@@ -272,8 +273,9 @@ WW::Steps::Impl::calculate(unsigned int complexity)
             (*it)->operation().modify(state);
             remove(*it, pending);
         }
-        m_chain.splice(m_chain.end(), solution);
+        chain.splice(chain.end(), solution);
     }
+    return chain;
 }
 
 void
@@ -316,10 +318,11 @@ WW::Steps::debug_dump() const
     return m_pimpl->debug_dump();
 }
 
-void
-WW::Steps::calculate(unsigned int complexity)
+WW::StepList
+WW::Steps::calculate(unsigned int complexity) const
 {
-    m_pimpl->calculate(complexity);
+    steplist_t chain = m_pimpl->calculate(complexity);
+    return StepList(chain);
 }
 
 void
