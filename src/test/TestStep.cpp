@@ -66,3 +66,27 @@ TEST(TestStep, LoadFromStreamWithSpaces)
         ASSERT_NE(it->value().c_str()[it->value().size() - 1], '\t') << "Changes should be stripped";
     }
 }
+
+TEST(TestStep, MultiLineDescription)
+{
+    std::string description(
+            "A double colon indicates a multi-line entry\n"
+            "  which is terminated by an empty line\n"
+            "\n"
+            "which means a blank line is acceptable"
+            );
+    std::istringstream ist(std::string() +
+            "short:NiceShortDescription\n"
+            "description::\n" + description + "\n"
+            ".\n"
+            "dependencies:one,two,three\n"
+            "changes:!three,four\n"
+            "cost:3\n"
+            "required:yes\n");
+
+    WW::TestStep step(ist);
+
+    ASSERT_EQ("NiceShortDescription", step.short_desc());
+    ASSERT_EQ(description, step.description());
+    ASSERT_EQ(3, step.cost());
+}

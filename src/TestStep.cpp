@@ -62,7 +62,7 @@ namespace {
         while (ist)
         {
             std::string line;
-            if (std::getline(ist, line) && line.size() > 0)
+            if (std::getline(ist, line))
             {
                 result.push_back(line);
             }
@@ -94,7 +94,7 @@ namespace {
         strings_t result;
         std::string::size_type start = 0;
         std::string::size_type pos = text.find(ch);
-        while (pos != std::string::npos && max_split++ > 1)
+        while (pos != std::string::npos && max_split-- > 1)
         {
             result.push_back(text.substr(start, pos - start));
             start = pos + 1;
@@ -103,7 +103,7 @@ namespace {
         result.push_back(text.substr(start));
         return result;
     }
-    
+
     attributes_t attribute_list(const std::string& text)
     {
         attributes_t result;
@@ -161,33 +161,49 @@ WW::TestStep::TestStep(std::istream& ist)
         strings_t x = split(*it, ':', 2);
         if (x.size() == 2)
         {
-            if (x[0] == "dependencies" || x[0] == "requirements")
+            std::string key(x[0]);
+            std::string value(strip(x[1]));
+
+            if (value == ":")
             {
-                m_operation.dependencies(attribute_list(x[1]));
+                value.clear();
+                for (++it; it != lines.end() && *it != "."; ++it)
+                {
+                    if (value.size() > 0) {
+                        value.append("\n");
+                    }
+                    if (it->size() > 0) {
+                        value.append(*it);
+                    }
+                }
             }
-            else if (x[0] == "changes")
+            if (key == "dependencies" || key == "requirements")
             {
-                m_operation.changes(attribute_list(x[1]));
+                m_operation.dependencies(attribute_list(value));
             }
-            else if (x[0] == "required")
+            else if (key == "changes")
             {
-                m_required = textToBoolean(strip(x[1]));
+                m_operation.changes(attribute_list(value));
             }
-            else if (x[0] == "description")
+            else if (key == "required")
             {
-                m_description = strip(x[1]);
+                m_required = textToBoolean(strip(value));
             }
-            else if (x[0] == "short")
+            else if (key == "description")
             {
-                m_short = strip(x[1]);
+                m_description = strip(value);
             }
-            else if (x[0] == "cost")
+            else if (key == "short")
             {
-                m_cost = atol(strip(x[1]).c_str());
+                m_short = strip(value);
+            }
+            else if (key == "cost")
+            {
+                m_cost = atol(strip(value).c_str());
             }
             else
             {
-                std::cerr << "ERROR: unrecognized token '" << x[0] << "'" << std::endl;
+                std::cerr << "ERROR: unrecognized token '" << key << "'" << std::endl;
             }
         }
     }
