@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "attributes.h"
+#include "TestStep.h"
 
 #include <sstream>
 
@@ -142,6 +143,7 @@ TEST(TestAttributes, TestContainsAll)
     haystack.require("two");
     haystack.require("three");
     haystack.forbid("four"); // a forbidden value
+    haystack.require("five=5");
 
     ASSERT_TRUE(haystack.containsAll(needle)) << "An empty set of attributes always matches";
     ASSERT_FALSE(needle.containsAll(haystack)) << "An empty haystack doesn't match any needle";
@@ -155,19 +157,24 @@ TEST(TestAttributes, TestContainsAll)
     needle.require("one");
     ASSERT_TRUE(haystack.containsAll(needle)) << "Make sure we match on all items";
 
-    needle.forbid("five");
+    needle.forbid("six");
     ASSERT_TRUE(haystack.containsAll(needle)) << "Check that absent forbidden values are matched";
 
     needle.require("four");
     ASSERT_FALSE(haystack.containsAll(needle)) << "Checking for a value should not match when the value is forbidden";
     
     needle = attribute_t();
-    needle.require("five");
+    needle.require("six");
     ASSERT_FALSE(haystack.containsAll(needle)) << "The only item in needle doesn't match";
 
     needle = attribute_t();
     needle.forbid("one");
     ASSERT_FALSE(haystack.containsAll(needle)) << "Don't match when one of the values is forbidden";
+
+    ASSERT_TRUE(haystack.containsAll(WW::TestStep::attribute_list("one,five=5,two"))) << "Exact match on attribute with value";
+    ASSERT_FALSE(haystack.containsAll(WW::TestStep::attribute_list("one,five=4,two"))) << "Exact match on attribute with value";
+    ASSERT_FALSE(haystack.containsAll(WW::TestStep::attribute_list("one,five,two"))) << "Exact match on attribute with value";
+    ASSERT_FALSE(haystack.containsAll(WW::TestStep::attribute_list("one=1"))) << "Exact match on attribute with value";
 }
 
 TEST(TestAttributes, TestContainsAny)
@@ -182,6 +189,7 @@ TEST(TestAttributes, TestContainsAny)
     haystack.require("two");
     haystack.require("three");
     haystack.forbid("four");
+    haystack.require("five=5");
 
     ASSERT_FALSE(haystack.containsAny(needle)) << "An empty set of attributes never matches";
     ASSERT_FALSE(needle.containsAny(haystack)) << "A non-empty needle won't match an empty haystack";
@@ -190,7 +198,7 @@ TEST(TestAttributes, TestContainsAny)
 
     ASSERT_TRUE(haystack.containsAny(needle)) << "We've matched on only one matching item";
 
-    needle.require("five");
+    needle.require("six");
     ASSERT_TRUE(haystack.containsAny(needle)) << "We've matched when only one of the items match";
 
     needle.forbid("two");
@@ -201,8 +209,12 @@ TEST(TestAttributes, TestContainsAny)
 
     needle = attribute_t();
 
-    needle.require("five");
+    needle.require("six");
     ASSERT_FALSE(haystack.containsAny(needle)) << "Nothing in common, no matches";
+
+    ASSERT_TRUE(haystack.containsAny(WW::TestStep::attribute_list("five=5"))) << "Exact match on attribute with value";
+    ASSERT_FALSE(haystack.containsAny(WW::TestStep::attribute_list("five=4"))) << "Exact match on attribute with value";
+    ASSERT_FALSE(haystack.containsAny(WW::TestStep::attribute_list("one=1,five"))) << "Exact match on attribute with value";
 }
 
 TEST(TestAttributes, TestApplyChanges)
@@ -257,15 +269,19 @@ TEST(TestAttributes, TestDifferences)
     state.require("one");
     state.require("two");
     state.require("three");
+    state.require("apple=sweet");
 
     requirements.require("one");
     requirements.require("deux");
     requirements.forbid("three");
     requirements.forbid("four"); // not in state, so satisfied and not expected in result
+    requirements.require("apple=sour");
 
     attribute_t expected;
     expected.require("deux");
     expected.forbid("three");
+    expected.forbid("apple=sweet");
+    expected.require("apple=sour");
 
     attribute_t changes = state.differences(requirements);
     ASSERT_EQ(expected, changes) << "Compare expected differences with reality";
