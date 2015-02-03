@@ -72,6 +72,7 @@ namespace {
             << "Options:" << std::endl
             << " -c\t\tcomplexity (default 5) higher for more suscinct results which takes longer to generate" << std::endl
             << " -r\t\tspecify directory containing required tests" << std::endl
+            << " -s\t\tspecify the starting state" << std::endl
             << std::endl;
         }
 
@@ -86,6 +87,7 @@ int main(int argc, char* argv[])
 
     bool loaded = false;
     WW::Steps steps;
+    WW::Steps::attributes_t state;
 
     for (unsigned int arg = 1 ; arg < argc ; ++arg)
     {
@@ -99,6 +101,7 @@ int main(int argc, char* argv[])
                         complexity = atoi(argv[++arg]);
                     }
                     break;
+
                 case 'r': // required tests loaded from a specific folder
                     {
                         WW::Steps required;
@@ -110,6 +113,19 @@ int main(int argc, char* argv[])
                         }
                         loaded = true;
                         steps.addRequired(required);
+                    }
+                    break;
+
+                case 's': // starting state
+                    {
+                        WW::Steps::attributes_t arg_state;
+                        if (argv[arg][2] != '\0') {
+                            arg_state = WW::TestStep::attribute_list(argv[arg] + 2);
+                        }
+                        else if (arg + 1 < argc) {
+                            arg_state = WW::TestStep::attribute_list(argv[++arg]);
+                        }
+                        state.insert(arg_state.begin(), arg_state.end());
                     }
                     break;
 
@@ -126,6 +142,8 @@ int main(int argc, char* argv[])
             loaded = true;
         }
     }
+
+    steps.setState(state);
 
     if (!loaded) {
         addDirectory("steps", steps);

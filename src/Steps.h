@@ -20,13 +20,11 @@ namespace WW
         // the pointer.  This is worth thinking about because the interface to
         // this class doesn't use pointers.
         typedef TestStep value_type;
-        typedef size_t size_type; // TODO: there is a better way of doing this.
+        typedef typename value_type::size_type size_type;
         typedef value_type& reference;
         typedef value_type* pointer;
-        /// typedef xxxx iterator;
-        /// typedef xxxx const_iterator;
-        /// typedef xxxx reverse_iterator;
-        /// typedef xxxx const_reverse_iterator;
+    public:
+        typedef TestStep::value_type attributes_t;
 
     public:
         Steps();
@@ -40,6 +38,7 @@ namespace WW
         void add(const Steps& steps);
         void addRequired(const Steps& steps);
         void addStep(const TestStep& step);
+        void setState(const attributes_t& state);
         StepList calculate(unsigned int complexity = 1) const; // Generate the test pass
         std::string debug_dump() const; // Temporary function which will dump the content to a string
 

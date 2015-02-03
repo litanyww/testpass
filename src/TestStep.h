@@ -19,6 +19,7 @@ namespace WW
         typedef Operation<std::string> operation_t;
         typedef operation_t::value_type value_type;
         typedef typename operation_t::size_type size_type;
+        typedef value_type attributes_t;
     public:
         TestStep();
         ~TestStep();
@@ -47,6 +48,9 @@ namespace WW
 
         const std::string& script() const { return m_script; }
         std::string script(const std::string& value) { std::string result = m_script; m_script = value; return result; }
+
+    public:
+        static attributes_t attribute_list(const std::string& text);
 
     private:
         operation_t m_operation;

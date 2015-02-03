@@ -15,7 +15,7 @@
 #define DEBUG
 #define DBGOUT(_x) do { std::cerr << "DEBUG: " << _x << std::endl; } while (0)
 
-typedef WW::TestStep::value_type attributes_t;
+typedef WW::Steps::attributes_t attributes_t;
 typedef std::list<const WW::TestStep*> steplist_t;
 typedef std::list<WW::TestStep> stepstore_t;
 
@@ -60,11 +60,13 @@ public:
     const stepstore_t& allSteps() const { return m_allSteps; }
     steplist_t& chain() { return m_chain; }
     const steplist_t& chain() const { return m_chain; }
+    void setState(const attributes_t& state) { m_startState = state; }
 
     std::string debug_dump() const;
     steplist_t calculate(unsigned int complexity) const;
 
 private:
+    attributes_t m_startState;
     stepstore_t m_allSteps;
     steplist_t m_chain;
 };
@@ -262,7 +264,7 @@ WW::Steps::Impl::calculate(unsigned int complexity) const
     steplist_t chain;
     clone_required(m_allSteps, pending);
 
-    attributes_t state;
+    attributes_t state = m_startState;
     while (pending.size() > 0)
     {
         steplist_t solution;
@@ -335,4 +337,10 @@ void
 WW::Steps::addRequired(const Steps& steps)
 {
     m_pimpl->add(steps, true);
+}
+
+void
+WW::Steps::setState(const attributes_t& state)
+{
+    m_pimpl->setState(state);
 }

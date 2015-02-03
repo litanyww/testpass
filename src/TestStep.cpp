@@ -108,35 +108,6 @@ namespace {
         return result;
     }
 
-    attributes_t attribute_list(const std::string& text)
-    {
-        attributes_t result;
-        std::string::size_type start = 0;
-        std::string::size_type pos = text.find(',');
-        while (pos != std::string::npos)
-        {
-            if (text[start] == '!')
-            {
-                result.forbid(strip(text.substr(start + 1, pos - start - 1)));
-            }
-            else
-            {
-                result.require(strip(text.substr(start, pos - start)));
-            }
-            start = pos + 1;
-            pos = text.find(',', start);
-        }
-        if (text[start] == '!')
-        {
-            result.forbid(strip(text.substr(start + 1)));
-        }
-        else
-        {
-            result.require(strip(text.substr(start)));
-        }
-        return result;
-    }
-
     std::string toLower(const std::string& text)
     {
         std::string result = text;
@@ -215,4 +186,36 @@ WW::TestStep::TestStep(std::istream& ist)
             }
         }
     }
+
 }
+
+attributes_t
+WW::TestStep::attribute_list(const std::string& text)
+{
+    attributes_t result;
+    std::string::size_type start = 0;
+    std::string::size_type pos = text.find(',');
+    while (pos != std::string::npos)
+    {
+        if (text[start] == '!')
+        {
+            result.forbid(strip(text.substr(start + 1, pos - start - 1)));
+        }
+        else
+        {
+            result.require(strip(text.substr(start, pos - start)));
+        }
+        start = pos + 1;
+        pos = text.find(',', start);
+    }
+    if (text[start] == '!')
+    {
+        result.forbid(strip(text.substr(start + 1)));
+    }
+    else
+    {
+        result.require(strip(text.substr(start)));
+    }
+    return result;
+}
+
