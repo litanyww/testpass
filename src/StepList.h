@@ -8,6 +8,7 @@
 
 #include "TestStep.h"
 
+#include <algorithm>
 #include <list>
 
 namespace WW
@@ -136,6 +137,8 @@ namespace WW
         void erase(iterator position) { m_contents.erase(position.base()); }
         void erase(iterator first, iterator last) { m_contents.erase(first.base(), last.base()); }
         void push_back(pointer val) { m_contents.push_back(val); }
+        const_iterator find(const_reference val) const { return std::find(m_contents.begin(), m_contents.end(), &val); }
+        iterator find(reference val) { return std::find(m_contents.begin(), m_contents.end(), &val); }
     };
 
     inline bool operator==(const StepList::iterator lhs, const StepList::iterator rhs) {

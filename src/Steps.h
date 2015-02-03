@@ -40,7 +40,7 @@ namespace WW
         void addStep(const TestStep& step);
         void setState(const attributes_t& state);
         StepList calculate(unsigned int complexity = 1) const; // Generate the test pass
-        std::string debug_dump() const; // Temporary function which will dump the content to a string
+        StepList requiredSteps() const;
 
     private:
         class Impl;

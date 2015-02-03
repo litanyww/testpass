@@ -60,6 +60,7 @@ namespace {
                 }
             }
         }
+
     void
         usage(const std::string& program_path)
         {
@@ -77,6 +78,19 @@ namespace {
             " -s CONDITIONS\tspecify the starting state" << std::endl <<
             " -i\t\tinteractive mode" << std::endl <<
             std::endl;
+        }
+
+    bool
+        isFirstRequired(const WW::TestStep& step, WW::StepList& list)
+        {
+            bool result = false;
+            WW::StepList::iterator it = list.find(step);
+            if (it != list.end())
+            {
+                result = true;
+                list.erase(it);
+            }
+            return result;
         }
 
 }
@@ -155,9 +169,12 @@ int main(int argc, char* argv[])
     }
 
     WW::StepList solution;
+    WW::StepList requiredSteps;
+
     try
     {
         solution = steps.calculate(complexity);
+        requiredSteps = steps.requiredSteps();
     } catch (WW::TestException& e)
     {
         std::cerr << "ERROR: " << e.what() << std::endl;
@@ -171,12 +188,14 @@ int main(int argc, char* argv[])
 
         for (WW::StepList::const_iterator it = solution.begin(); it != solution.end(); ++it)
         {
-            if (it->script().empty()) {
-                std::cout << ++item << ". " << it->short_desc() << std::endl;
+            bool hasScript = false;
+
+            if (!it->script().empty()) {
+                hasScript = true;
             }
-            else {
-                std::cout << ++item << "* " << it->short_desc() << std::endl;
-            }
+            char dot = hasScript ? '*' : '.';
+            char space = isFirstRequired(*it, requiredSteps) ? '>' : ' ';
+            std::cout << ++item << dot << space << it->short_desc() << std::endl;
         }
     }
     else
@@ -196,8 +215,9 @@ int main(int argc, char* argv[])
                 hasScript = true;
             }
             char dot = hasScript ? '*' : '.';
+            char space = isFirstRequired(*it, requiredSteps) ? '>' : ' ';
             std::cout << std::endl <<
-                ++item << dot << " " << it->short_desc() << std::endl <<
+                ++item << dot << space << it->short_desc() << std::endl <<
                 std::endl <<
                 it->description() << std::endl <<
                 std::endl <<

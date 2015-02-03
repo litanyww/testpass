@@ -46,7 +46,6 @@ private:
 public:
     Impl()
         : m_allSteps()
-        , m_chain()
         {}
     ~Impl() {}
 
@@ -58,37 +57,14 @@ public:
     void add(const Steps& steps, bool allAreRequired = false);
     stepstore_t& allSteps() { return m_allSteps; }
     const stepstore_t& allSteps() const { return m_allSteps; }
-    steplist_t& chain() { return m_chain; }
-    const steplist_t& chain() const { return m_chain; }
     void setState(const attributes_t& state) { m_startState = state; }
 
-    std::string debug_dump() const;
     steplist_t calculate(unsigned int complexity) const;
 
 private:
     attributes_t m_startState;
     stepstore_t m_allSteps;
-    steplist_t m_chain;
 };
-
-std::string
-WW::Steps::Impl::debug_dump() const
-{
-    std::ostringstream ost;
-    unsigned int item = 0;
-
-    for (steplist_t::const_iterator it = m_chain.begin(); it != m_chain.end(); ++it)
-    {
-        if ((*it)->script().empty()) {
-            ost << ++item << ". " << (*it)->short_desc() << std::endl;
-        }
-        else {
-            ost << ++item << "* " << (*it)->short_desc() << std::endl;
-        }
-    }
-
-    return ost.str();
-}
 
 namespace {
 
@@ -314,12 +290,6 @@ WW::Steps::addStep(const TestStep& step)
     m_pimpl->allSteps().push_back(step);
 }
 
-std::string
-WW::Steps::debug_dump() const
-{
-    return m_pimpl->debug_dump();
-}
-
 WW::StepList
 WW::Steps::calculate(unsigned int complexity) const
 {
@@ -343,4 +313,17 @@ void
 WW::Steps::setState(const attributes_t& state)
 {
     m_pimpl->setState(state);
+}
+
+WW::StepList
+WW::Steps::requiredSteps() const
+{
+    WW::StepList result;
+    for (stepstore_t::const_iterator it = m_pimpl->allSteps().begin(); it != m_pimpl->allSteps().end(); ++it)
+    {
+        if (it->required()) {
+            result.push_back(&(*it));
+        }
+    }
+    return result;
 }
