@@ -51,6 +51,7 @@ namespace WW
 
     public:
         static attributes_t attribute_list(const std::string& text);
+        static std::string strip(const std::string& text);
 
     private:
         operation_t m_operation;

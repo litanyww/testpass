@@ -80,18 +80,6 @@ namespace {
         return splitOnLines(ist);
     }
 
-    std::string strip(const std::string& text)
-    {
-        std::string::size_type start = text.find_first_not_of("\r\n\t ");
-        if (start == std::string::npos)
-        {
-            return std::string();
-        }
-        std::string::size_type end = text.find_last_not_of("\r\n\t ");
-        // 0^2
-        return text.substr(start, 1 + end - start);
-    }
-
     strings_t split(const std::string& text, char ch = ',', size_t max_split = static_cast<size_t>(-1))
     {
         // 1,3
@@ -217,5 +205,18 @@ WW::TestStep::attribute_list(const std::string& text)
         result.require(strip(text.substr(start)));
     }
     return result;
+}
+
+std::string
+WW::TestStep::strip(const std::string& text)
+{
+    std::string::size_type start = text.find_first_not_of("\r\n\t ");
+    if (start == std::string::npos)
+    {
+        return std::string();
+    }
+    std::string::size_type end = text.find_last_not_of("\r\n\t ");
+    // 0^2
+    return text.substr(start, 1 + end - start);
 }
 

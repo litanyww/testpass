@@ -66,23 +66,24 @@ namespace {
             std::string::size_type slash = program_path.find_last_of('/');
             std::string name = (slash == std::string::npos) ? program_path : program_path.substr(slash + 1);
 
-            std::cout << "Usage: " << name << " [OPTIONS]... DIRECTORY..." << std::endl
-            << "Construct a test pass based on test pass fragments" << std::endl
-            << std::endl
-            << "Options:" << std::endl
-            << " -c\t\tcomplexity (default 5) higher for more suscinct results which takes longer to generate" << std::endl
-            << " -r\t\tspecify directory containing required tests" << std::endl
-            << " -s\t\tspecify the starting state" << std::endl
-            << std::endl;
+            std::cout << "Usage: " << name << " [OPTIONS]... DIRECTORY..." << std::endl <<
+            "Construct a test pass based on test pass fragments which are loaded from the" << std::endl <<
+            "specified directories" << std::endl <<
+            std::endl <<
+            "Options:" << std::endl <<
+            " -c COMPLEXITY\thigher for more suscinct results which takes longer to" << std::endl <<
+            "\t\tgenerate (default 5)" << std::endl <<
+            " -r DIRECTORY\tspecify directory containing required tests" << std::endl <<
+            " -s CONDITIONS\tspecify the starting state" << std::endl <<
+            " -i\t\tinteractive mode" << std::endl <<
+            std::endl;
         }
 
 }
 
 int main(int argc, char* argv[])
 {
-    static_cast<void>(argc);
-    static_cast<void>(argv);
-
+    bool interactive_mode = false;
     unsigned int complexity = 5; // default complexity
 
     bool loaded = false;
@@ -129,6 +130,10 @@ int main(int argc, char* argv[])
                     }
                     break;
 
+                case 'i': // interactive mode
+                    interactive_mode = true;
+                    break;
+
                 default:
                     usage(argv[0]);
                     return 0;
@@ -159,19 +164,100 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    std::cout << "dump of plan: " << std::endl << steps.debug_dump() << std::endl;
-    unsigned int item = 0;
-
-    for (WW::StepList::const_iterator it = solution.begin(); it != solution.end(); ++it)
+    if (!interactive_mode)
     {
-        if (it->script().empty()) {
-            std::cout << ++item << ". " << it->short_desc() << std::endl;
-        }
-        else {
-            std::cout << ++item << "* " << it->short_desc() << std::endl;
+        std::cout << "dump of plan: " << std::endl;
+        unsigned int item = 0;
+
+        for (WW::StepList::const_iterator it = solution.begin(); it != solution.end(); ++it)
+        {
+            if (it->script().empty()) {
+                std::cout << ++item << ". " << it->short_desc() << std::endl;
+            }
+            else {
+                std::cout << ++item << "* " << it->short_desc() << std::endl;
+            }
         }
     }
+    else
+    {
+        // Interactive mode
+        unsigned int item = 0;
+        bool quitNow = false;
+        for (WW::StepList::const_iterator it = solution.begin(); it != solution.end(); ++it)
+        {
+            if (quitNow)
+            {
+                break;
+            }
+            bool hasScript = false;
 
+            if (!it->script().empty()) {
+                hasScript = true;
+            }
+            char dot = hasScript ? '*' : '.';
+            std::cout << std::endl <<
+                ++item << dot << " " << it->short_desc() << std::endl <<
+                std::endl <<
+                it->description() << std::endl <<
+                std::endl <<
+                "State: " << state << std::endl;
+            for (;;) {
+                std::string breadcrumb = "fnq?";
+
+                if (hasScript) {
+                    breadcrumb = "sS" + breadcrumb;
+                }
+                std::cout << "[" << breadcrumb << "]";
+                std::string input;
+                std::getline(std::cin, input);
+
+                input = WW::TestStep::strip(input);
+                if (hasScript && input[0] == 'S')
+                {
+                    std::cout << std::endl << it->script() << std::endl <<
+                        std::endl;
+                }
+                else if (hasScript && input[0] == 's')
+                {
+                    std::cout << std::endl << "TODO: EXECUTE SCRIPT: " << it->script() << std::endl <<
+                        std::endl;
+                }
+                else if (input[0] == 'f')
+                {
+                    std::cerr << "TODO: log failure " << input.substr(1) << std::endl;
+                    break;
+                }
+                else if (input[0] == 'n')
+                {
+                    std::cerr << "TODO: log note " << input.substr(1) << std::endl;
+                }
+                else if (input[0] == 'q')
+                {
+                    quitNow = true;
+                    break;
+                }
+                else if (input[0] == '?')
+                {
+                    if (hasScript)
+                    {
+                        std::cout << "s\t\tExecute automation script associated with this step" << std::endl;
+                        std::cout << "S\t\tShow automation script associated with this step" << std::endl;
+                    }
+                    std::cout << "f REASON\tLog a failure for this test step" << std::endl <<
+                        "n NOTE\t\tAdd a note for this test step" << std::endl <<
+                        "q\t\tQuit the test pass" << std::endl <<
+                        "?\t\tShow this help" << std::endl <<
+                        std::endl;
+                }
+                else if (input.empty())
+                {
+                    break;
+                }
+            }
+            it->operation().modify(state);
+        }
+    }
 
     return 0;
 }
