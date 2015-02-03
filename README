@@ -1,0 +1,90 @@
+Test Ideas Framework
+--------------------
+
+This is a project providing a framework for some experimental ideas regarding
+manual testing.
+
+A common theme with test case management software (e.g. TestLink) is that it
+allows each test case to be broken into discrete steps.  The idea is that this
+allows the testing to be broken up into smaller, shorter parts which are easier
+to follow.  This is hugely beneficial since complex test cases are difficult to
+follow accurately and this greatly increasing the chance of errors while
+slowing down the tester.
+
+In most cases, these test steps are simply manually added to each test case.  I
+wanted to see whether it was possible to discard the concept of test cases
+altogether and control the entire test pass using just steps.   Doing this
+manually and without the framework of test cases would be ridiculously
+difficult; however this is a task perfectly suited for automation.
+
+This approach presents the following benefits:
+
+ - Those test steps which were once found replicated in multiple test cases
+   need only be defined once.
+ - Somewhat related, if changes to the product necessitate a change to a test
+   step, it need only be changed once where as this would otherwise be a
+   tedious and fiddly task
+ - It is easy to add a new variation of a test step, which previously might
+   have been handled by cloning an existing test case, or laboriously inserting
+   the variation and its prerequisite steps into an existing test case.
+ - Since the order of test steps is determined automatically, an optimal order
+   can be selected which minimizes test effort
+ - Any test step can be partially or fully automated.  The tester can
+   optionally choose whether to execute this automation, or perform the work
+   manually.
+ - Each step is presented to the user as they come to it, obviating the need
+   for tricks to keep one's place while running a long test (in TestLink, I
+   highlight the section I'm on with the mouse)
+ - Since each step requires interaction from the user, the log includes timing
+   details for each step, as well as per-step comments.
+ - After an interruption to testing, the tester can restart and specify an
+   initial state which does not necessarily match the point at which the
+   testing ended.  This should mean that the tester will not be required to
+   skip steps that they've already performed since they will not be presented.
+
+Along with the description of the test step and an optional automation fragment
+in shell script, each test case includes:
+
+ - A list of state requirements
+ - A list of changes which will be made to the state after completing this step
+ - An indication of cost (an arbitrary value such that a sequence of steps with
+   a lower total cost will be preferred over another sequence
+ - An indication of whether the test step is required to be included in the
+   generated test pass.
+
+Until I can decide on a better format for test cases, I'm using a simple
+textual format.  Here's an example:
+
+    short: accessToEicarDeniedWithClean
+    dependencies: haveEicar, onaccess, installed, oa_action=clean
+    changes: !haveEicar, !eicarInQuarantine
+    required: yes
+    cost: 4
+
+    description::
+    Attempt to access /tmp/eicar.com using `cat` or any other way; access will be denied.
+    
+    After a moment, the file /tmp/eicar.com will be removed.  Nothing is recorded in the quarantine, but will be logged.
+    .
+    script::
+    cat -v /tmp/eicar.com >/dev/null && exit 1
+    deadline=$((`date +%v` + 15))
+    while [ `date +%v` -lt $deadline ] ; do
+        test -e /tmp/eicar.com || exit 0
+        sleep 1
+    done
+    exit 1
+    .
+
+In order for this test step to be executed, other test steps must be run which
+will provide on their own 'changes' entry every condition specified in the
+'dependencies' line.
+
+Note that changes prefixed with '!' means that this condition is removed.  A
+'!' may also be present in the 'dependencies' line, meaning that the named
+condition must not be set.
+
+Also, conditions like 'oa_action=clean' replace any other condition prefixed
+'oa_action='.  For example, a test step which includes 'oa_action=deny' in its
+changes entry will remove 'oa_action=clean' and replace it with
+'oa_action=deny'.
