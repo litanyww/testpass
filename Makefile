@@ -18,8 +18,8 @@ TEST_DEPS = $(TEST_OBJS:%.o=%.d)
 INCLUDE_DIRS = src gtest-1.7.0/include
 
 CXX = g++
-CXXFLAGS = -g $(CFLAGS)
-INCLUDES =  $(addprefix -I,$(INCLUDE_DIRS))
+CXXFLAGS = -g $(CFLAGS) -Wall -Weffc++
+INCLUDES =  $(addprefix -I,$(INCLUDE_DIRS)) gtest-1.7.0/include
 
 all : tests compile
 
@@ -32,7 +32,11 @@ $(STEPS_TARGET) : $(STEPS_OBJS)
 
 $(OBJ_DIR)/gtest-all.o : gtest-1.7.0/src/gtest-all.cc
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -Igtest-1.7.0 -c -o $@ $<
+	$(CXX) $(filter-out -Weffc++,$(CXXFLAGS)) -Igtest-1.7.0 -Igtest-1.7.0/include -c -o $@ $<
+
+$(OBJ_DIR)/src/test/%.o : src/test/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(INCLUDES) $(filter-out -Weffc++,$(CXXFLAGS)) -c -o $@ $<
 
 $(OBJ_DIR)/%.o : %.cpp
 	@mkdir -p $(dir $@)
@@ -42,7 +46,7 @@ gtest-1.7.0/src/gtest-all.cc : gtest-1.7.0.zip
 	unzip -q gtest-1.7.0.zip
 	touch $@
 
-$(OBJ_DIR)/%.d : %.cpp
+$(OBJ_DIR)/%.d : %.cpp $(OBJ_DIR)/gtest-all.o
 	@mkdir -p $(dir $@)
 	@set -e; rm -f $@; \
 		$(CXX) -M $(INCLUDES) $(CXXFLAGS) $< > $@.$$$$; \

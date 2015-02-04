@@ -6,3 +6,4 @@ tests
 .ycm_extra_conf.pyc
 compile
 libsteps.a
+compile.dSYM/

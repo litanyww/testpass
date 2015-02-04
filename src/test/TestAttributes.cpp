@@ -18,16 +18,16 @@ TEST(TestAttributes, AttributeAsSet)
     collection.require("one");
     collection.require("two");
 
-    ASSERT_EQ(2, collection.size()) << "Check the size of the collection";
+    ASSERT_EQ(static_cast<size_t>(2), collection.size()) << "Check the size of the collection";
 
     collection.erase("one");
 
-    ASSERT_EQ(1, collection.size()) << "We can erase an element";
+    ASSERT_EQ(static_cast<size_t>(1), collection.size()) << "We can erase an element";
     ASSERT_EQ("two", *collection.begin()) << "check that the undeleted item is still there";
     ASSERT_FALSE(collection.begin()->isForbidden()) << "By default, the forbidden flag is unset";
 
     collection.forbid("two");
-    ASSERT_EQ(1, collection.size()) << "Adding a negative attribute doesn't change the size";
+    ASSERT_EQ(static_cast<size_t>(1), collection.size()) << "Adding a negative attribute doesn't change the size";
     ASSERT_TRUE(collection.begin()->isForbidden()) << "Make sure that we've changed the forbidden flag";
 
     collection.require("three");

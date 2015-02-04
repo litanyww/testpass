@@ -35,7 +35,7 @@ namespace WW
             Attributes(const _T& element) : m_contents() { m_contents.insert(value_type(element)); }
             Attributes(const value_type& element) : m_contents() { m_contents.insert(element); }
             Attributes(const Attributes& copy) : m_contents(copy.m_contents) {}
-            Attributes& operator=(const Attributes& copy) { m_contents = copy.m_contents; }
+            Attributes& operator=(const Attributes& copy) { m_contents = copy.m_contents; return *this; }
 #if __cplusplus >= 201103L
             Attributes(Attributes&& copy) : m_contents(copy.m_contents) {}
 #endif

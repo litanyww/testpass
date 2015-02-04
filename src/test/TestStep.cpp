@@ -26,10 +26,10 @@ TEST(TestStep, LoadFromStream)
     ASSERT_EQ("NiceShortDescription", step.short_desc());
     ASSERT_EQ("Descriptive Long Description", step.description());
     ASSERT_EQ("echo \"Hello, World!\"", step.script());
-    ASSERT_EQ(2, step.cost());
+    ASSERT_EQ(static_cast<unsigned int>(2), step.cost());
     ASSERT_TRUE(step.required());
-    ASSERT_EQ(2, step.operation().changes().size());
-    ASSERT_EQ(4, step.operation().dependencies().size());
+    ASSERT_EQ(static_cast<size_t>(2), step.operation().changes().size());
+    ASSERT_EQ(static_cast<size_t>(4), step.operation().dependencies().size());
 }
 
 TEST(TestStep, LoadFromStreamWithSpaces)
@@ -46,10 +46,10 @@ TEST(TestStep, LoadFromStreamWithSpaces)
 
     ASSERT_EQ("NiceShortDescription", step.short_desc());
     ASSERT_EQ("Descriptive Long Description", step.description());
-    ASSERT_EQ(2, step.cost());
+    ASSERT_EQ(static_cast<unsigned int>(2), step.cost());
     ASSERT_TRUE(step.required());
-    ASSERT_EQ(2, step.operation().changes().size());
-    ASSERT_EQ(4, step.operation().dependencies().size());
+    ASSERT_EQ(static_cast<size_t>(2), step.operation().changes().size());
+    ASSERT_EQ(static_cast<size_t>(4), step.operation().dependencies().size());
     typedef WW::TestStep::value_type attributes_t;
     const attributes_t& dependencies = step.operation().dependencies();
     for (attributes_t::const_iterator it = dependencies.begin(); it != dependencies.end(); ++it)
@@ -91,5 +91,5 @@ TEST(TestStep, MultiLineDescription)
 
     ASSERT_EQ("NiceShortDescription", step.short_desc());
     ASSERT_EQ(description, step.description());
-    ASSERT_EQ(3, step.cost());
+    ASSERT_EQ(static_cast<unsigned int>(3), step.cost());
 }

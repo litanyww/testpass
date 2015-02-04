@@ -37,7 +37,7 @@ WW::TestStep::operator=(const TestStep& copy)
     m_required = copy.m_required;
     m_description = copy.m_description;
     m_short = copy.m_short;
-    m_script == copy.m_script;
+    m_script = copy.m_script;
     return *this;
 }
 #if __cplusplus >= 201103L
@@ -72,12 +72,6 @@ namespace {
             }
         }
         return result;
-    }
-
-    strings_t splitOnLines(const std::string& text)
-    {
-        std::istringstream ist(text);
-        return splitOnLines(ist);
     }
 
     strings_t split(const std::string& text, char ch = ',', size_t max_split = static_cast<size_t>(-1))
@@ -117,6 +111,7 @@ WW::TestStep::TestStep(std::istream& ist)
 , m_required(true)
 , m_description()
 , m_short()
+, m_script()
 {
     strings_t lines = splitOnLines(ist);
     for (strings_t::const_iterator it = lines.begin(); it != lines.end(); ++it)

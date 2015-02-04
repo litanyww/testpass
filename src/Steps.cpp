@@ -45,7 +45,8 @@ private:
 
 public:
     Impl()
-        : m_allSteps()
+        : m_startState()
+        , m_allSteps()
         {}
     ~Impl() {}
 

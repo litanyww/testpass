@@ -18,7 +18,7 @@ namespace WW
     public:
         typedef Operation<std::string> operation_t;
         typedef operation_t::value_type value_type;
-        typedef typename operation_t::size_type size_type;
+        typedef operation_t::size_type size_type;
         typedef value_type attributes_t;
     public:
         TestStep();

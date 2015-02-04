@@ -17,7 +17,7 @@ namespace WW
     {
     public:
         typedef const TestStep value_type;
-        typedef typename value_type::size_type size_type;
+        typedef value_type::size_type size_type;
         typedef value_type& reference;
         typedef const value_type& const_reference;
         typedef value_type* pointer;
@@ -82,24 +82,24 @@ namespace WW
             public:
                 reference operator*() { return **m_current; }
                 pointer operator->() { return *m_current; }
-                iterator& operator++()
+                const_iterator& operator++()
                     {
                         ++m_current;
                         return *this;
                     }
 
-                iterator
+                const_iterator
                     operator++(int)
                     {
                         return const_iterator(m_current++);
                     }
-                iterator& operator--()
+                const_iterator& operator--()
                     {
                         --m_current;
                         return *this;
                     }
 
-                iterator
+                const_iterator
                     operator--(int)
                     {
                         return const_iterator(m_current--);

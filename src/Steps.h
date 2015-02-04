@@ -20,7 +20,7 @@ namespace WW
         // the pointer.  This is worth thinking about because the interface to
         // this class doesn't use pointers.
         typedef TestStep value_type;
-        typedef typename value_type::size_type size_type;
+        typedef value_type::size_type size_type;
         typedef value_type& reference;
         typedef value_type* pointer;
     public:

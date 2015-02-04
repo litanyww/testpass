@@ -41,7 +41,7 @@ namespace WW
             Attribute(const _T& value) : m_value(value), m_forbidden(false) {}
             Attribute(const _T& value, bool forbidden) : m_value(value), m_forbidden(forbidden) {}
             Attribute(const Attribute& copy) : m_value(copy.m_value), m_forbidden(copy.m_forbidden) {}
-            Attribute& operator=(const Attribute& copy) { m_value = copy.m_value; m_forbidden == copy.m_forbidden; }
+            Attribute& operator=(const Attribute& copy) { m_value = copy.m_value; m_forbidden = copy.m_forbidden; return *this; }
 #if __cplusplus >= 201103L
             Attribute(Attribute&& copy) : m_value(copy.m_value), m_forbidden(copy.m_forbidden) {}
 #endif

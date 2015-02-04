@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
     WW::Steps steps;
     WW::Steps::attributes_t state;
 
-    for (unsigned int arg = 1 ; arg < argc ; ++arg)
+    for (int arg = 1 ; arg < argc ; ++arg)
     {
         if (argv[arg][0] == '-') {
             switch (argv[arg][1]) {
