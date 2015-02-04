@@ -37,6 +37,7 @@ namespace WW
     public:
         void add(const Steps& steps);
         void addRequired(const Steps& steps);
+        void markNotRequired(const std::string& short_desc);
         void addStep(const TestStep& step);
         void setState(const attributes_t& state);
         StepList calculate(unsigned int complexity = 1) const; // Generate the test pass
