@@ -138,6 +138,25 @@ namespace {
             std::ofstream ost(file.c_str(), std::ios_base::out | std::ios_base::app);
             write_log(ost, step, flags, note);
         }
+
+    strings_t
+        read_log(const std::string& logFile)
+        {
+            strings_t result;
+            std::ifstream ifs(logFile.c_str());
+            std::string text;
+
+            while (ifs)
+            {
+                std::getline(ifs, text);
+                std::string::size_type colon = text.find_first_of(':');
+                if (colon != std::string::npos) {
+                    result.push_back(text.substr(0, colon));
+                }
+            }
+
+            return result;
+        }
 }
 
 int main(int argc, char* argv[])
@@ -225,6 +244,13 @@ int main(int argc, char* argv[])
     WW::StepList solution;
     WW::StepList requiredSteps;
 
+    if (interactive_mode) {
+        strings_t nonRequiredTests = read_log(logFile);
+        for (strings_t::const_iterator it = nonRequiredTests.begin(); it != nonRequiredTests.end(); ++it) {
+            steps.markNotRequired(*it);
+        }
+    }
+
     try
     {
         solution = steps.calculate(complexity);
@@ -235,24 +261,28 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    if (!interactive_mode)
+    if (solution.size() == 0)
     {
-        std::cout << "dump of plan: " << std::endl;
-        unsigned int item = 0;
-
-        for (WW::StepList::const_iterator it = solution.begin(); it != solution.end(); ++it)
-        {
-            bool hasScript = false;
-
-            if (!it->script().empty()) {
-                hasScript = true;
-            }
-            char dot = hasScript ? '*' : '.';
-            char space = isFirstRequired(*it, requiredSteps) ? '>' : ' ';
-            std::cout << ++item << dot << space << it->short_desc() << std::endl;
-        }
+        std::cout << "No tests to run" << std::endl;
+        return 0;
     }
-    else
+
+    std::cout << "dump of plan: " << std::endl;
+    unsigned int item = 0;
+
+    for (WW::StepList::const_iterator it = solution.begin(); it != solution.end(); ++it)
+    {
+        bool hasScript = false;
+
+        if (!it->script().empty()) {
+            hasScript = true;
+        }
+        char dot = hasScript ? '*' : '.';
+        char space = isFirstRequired(*it, requiredSteps) ? '>' : ' ';
+        std::cout << ++item << dot << space << it->short_desc() << std::endl;
+    }
+
+    if (interactive_mode)
     {
         // Interactive mode
         unsigned int item = 0;

@@ -163,6 +163,25 @@ namespace WW
     inline void PrintTo(const StepList::const_iterator& it, ::std::ostream* str) {
         *str << "StepList::iterator";
     }
+
+    template <typename Stream>
+        Stream&
+        operator<<(Stream& ost, const StepList& list) {
+            bool comma = false;
+            ost << "[";
+            for (StepList::const_iterator it = list.begin(); it != list.end(); ++it)
+            {
+                if (comma) {
+                    ost << ", ";
+                }
+                else {
+                    comma = true;
+                }
+                ost << *it;
+            }
+            ost << "]";
+            return ost;
+        }
 }
 
 template <class Iter>
