@@ -12,6 +12,8 @@
 #include <deque>
 #include <iostream>
 
+#include <time.h>
+
 #define DEBUG
 #define DBGOUT(_x) do { std::cerr << "DEBUG: " << _x << std::endl; } while (0)
 

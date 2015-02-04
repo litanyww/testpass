@@ -219,3 +219,21 @@ to proceed from the previous required step to the candidate.  Thus, changes are
 made close to where the test happens.  I think this is actually a preferred
 outcome since it provides the tester a measure of context on what they're
 testing.
+
+-----
+
+Progress Log
+
+The '-i' flag doesn't currently take an argument.  I plan to require that this
+option takes a path to a log file.
+
+Each test step executed will be logged to this file in a form which is human
+readable, and also easily parsable.  It needs the following information:
+
+ - short description
+ - time/date
+ - success, failure
+ - whether automation was run
+ - note
+
+ShortDescription:1423020705:fs:Note about what happened.\n\nMultiple lines are available

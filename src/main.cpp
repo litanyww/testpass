@@ -93,12 +93,58 @@ namespace {
             return result;
         }
 
+    std::string
+        sanitize(const std::string& text)
+        {
+            std::ostringstream ost;
+            std::string::size_type pos;
+            std::string::size_type start = 0;
+            while ((pos = text.find_first_of("\n\t", start)) != std::string::npos)
+            {
+                ost << text.substr(start, pos - start - 1);
+                switch (text[pos])
+                {
+                    case '\n':
+                        ost << "\\n";
+                        break;
+                    case '\t':
+                        ost << "\\t";
+                        break;
+                    default:
+                        std::cerr << "ERROR: unexpected code" << std::endl;
+                        break;
+                }
+                start = pos + 1;
+            }
+            ost << text.substr(start);
+            return ost.str();
+        }
+
+    void
+        write_log(std::ostream& ost, const WW::TestStep& step, const std::string& flags, const std::string& note)
+        {
+            time_t when;
+            time(&when);
+            ost << step.short_desc() <<
+                ":" << when <<
+                ":" << flags <<
+                ":" << sanitize(note) <<
+                std::endl;
+        }
+
+    void
+        write_log(const std::string& file, const WW::TestStep& step, const std::string& flags, const std::string& note)
+        {
+            std::ofstream ost(file.c_str(), std::ios_base::out | std::ios_base::app);
+            write_log(ost, step, flags, note);
+        }
 }
 
 int main(int argc, char* argv[])
 {
     bool interactive_mode = false;
     unsigned int complexity = 5; // default complexity
+    std::string logFile;
 
     bool loaded = false;
     WW::Steps steps;
@@ -145,7 +191,15 @@ int main(int argc, char* argv[])
                     break;
 
                 case 'i': // interactive mode
-                    interactive_mode = true;
+                    {
+                        interactive_mode = true;
+                        if (argv[arg][2] != '\0') {
+                            logFile = argv[arg] + 2;
+                        }
+                        else if (arg + 1 < argc) {
+                            logFile = argv[++arg];
+                        }
+                    }
                     break;
 
                 default:
@@ -216,14 +270,21 @@ int main(int argc, char* argv[])
             }
             char dot = hasScript ? '*' : '.';
             char space = isFirstRequired(*it, requiredSteps) ? '>' : ' ';
-            std::cout << std::endl <<
-                ++item << dot << space << it->short_desc() << std::endl <<
-                std::endl <<
-                it->description() << std::endl <<
-                std::endl <<
-                "State: " << state << std::endl;
+            bool showStep = true;
+            std::string executedScript = "";
             for (;;) {
-                std::string breadcrumb = "fnq?";
+                if (showStep)
+                {
+                    std::cout << std::endl <<
+                        ++item << dot << space << it->short_desc() << std::endl <<
+                        std::endl <<
+                        it->description() << std::endl <<
+                        std::endl;
+                    showStep = false;
+                }
+                std::cout <<
+                    "State: " << state << std::endl;
+                std::string breadcrumb = "fnqp?";
 
                 if (hasScript) {
                     breadcrumb = "sS" + breadcrumb;
@@ -240,17 +301,24 @@ int main(int argc, char* argv[])
                 }
                 else if (hasScript && input[0] == 's')
                 {
+                    executedScript = "s";
                     std::cout << std::endl << "TODO: EXECUTE SCRIPT: " << it->script() << std::endl <<
                         std::endl;
                 }
                 else if (input[0] == 'f')
                 {
-                    std::cerr << "TODO: log failure " << input.substr(1) << std::endl;
+                    write_log(logFile, *it, std::string("f") + executedScript, WW::TestStep::strip(input.substr(1)));
                     break;
                 }
                 else if (input[0] == 'n')
                 {
-                    std::cerr << "TODO: log note " << input.substr(1) << std::endl;
+                    write_log(logFile, *it, executedScript, WW::TestStep::strip(input.substr(1)));
+                    break;
+                }
+                else if (input[0] == 'p')
+                {
+                    showStep = true;
+                    break;
                 }
                 else if (input[0] == 'q')
                 {
@@ -266,12 +334,14 @@ int main(int argc, char* argv[])
                     }
                     std::cout << "f REASON\tLog a failure for this test step" << std::endl <<
                         "n NOTE\t\tAdd a note for this test step" << std::endl <<
+                        "p\t\tShow the test step details" << std::endl <<
                         "q\t\tQuit the test pass" << std::endl <<
                         "?\t\tShow this help" << std::endl <<
                         std::endl;
                 }
                 else if (input.empty())
                 {
+                    write_log(logFile, *it, executedScript, "");
                     break;
                 }
             }
