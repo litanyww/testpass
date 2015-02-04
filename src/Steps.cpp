@@ -56,6 +56,7 @@ private: // forbid copy and assignment
 
 public:
     void add(const Steps& steps, bool allAreRequired = false);
+    void add(const TestStep& step);
     stepstore_t& allSteps() { return m_allSteps; }
     const stepstore_t& allSteps() const { return m_allSteps; }
     void setState(const attributes_t& state) { m_startState = state; }
@@ -263,12 +264,30 @@ WW::Steps::Impl::add(const WW::Steps& steps, bool allAreRequired)
     const stepstore_t& store = steps.m_pimpl->m_allSteps;
     for (stepstore_t::const_iterator it = store.begin(); it != store.end(); ++it)
     {
-        WW::TestStep copy = *it;
         if (allAreRequired) {
+            WW::TestStep copy = *it;
             copy.required(true);
+            add(copy);
         }
-        m_allSteps.push_back(copy);
+        else
+        {
+            add(*it);
+        }
     }
+}
+
+void
+WW::Steps::Impl::add(const TestStep& step)
+{
+    for (stepstore_t::iterator it = m_allSteps.begin(); it != m_allSteps.end(); ++it)
+    {
+        if (it->short_desc() == step.short_desc())
+        {
+            m_allSteps.erase(it);
+            break;
+        }
+    }
+    m_allSteps.push_back(step);
 }
 
 ///
@@ -288,7 +307,7 @@ WW::Steps::~Steps()
 void
 WW::Steps::addStep(const TestStep& step)
 {
-    m_pimpl->allSteps().push_back(step);
+    m_pimpl->add(step);
 }
 
 WW::StepList
