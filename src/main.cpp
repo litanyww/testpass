@@ -73,7 +73,7 @@ namespace {
             std::endl <<
             "Options:" << std::endl <<
             " -c COMPLEXITY\thigher for more suscinct results which takes longer to" << std::endl <<
-            "\t\tgenerate (default 5)" << std::endl <<
+            "\t\tgenerate (default 2)" << std::endl <<
             " -r DIRECTORY\tspecify directory containing required tests" << std::endl <<
             " -s CONDITIONS\tspecify the starting state" << std::endl <<
             " -i\t\tinteractive mode" << std::endl <<
@@ -162,7 +162,7 @@ namespace {
 int main(int argc, char* argv[])
 {
     bool interactive_mode = false;
-    unsigned int complexity = 5; // default complexity
+    unsigned int complexity = 2; // default complexity
     std::string logFile;
 
     bool loaded = false;
