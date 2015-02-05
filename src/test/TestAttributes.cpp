@@ -233,6 +233,7 @@ TEST(TestAttributes, TestApplyChanges)
     first.require("apple");
     first.forbid("banana");
     first.require("peach=tasty");
+    first.require("grape=small");
 
     second.require("one");
     second.forbid("two");
@@ -240,13 +241,13 @@ TEST(TestAttributes, TestApplyChanges)
     second.require("grape");
     second.forbid("lemon");
     second.require("peach=sour");
+    second.forbid("grape");
     
     attribute_t expected;
     expected.require("one");
     expected.require("three");
     expected.require("apple");
     expected.forbid("banana"); // meaningless, but applyChanges didn't change it
-    expected.require("grape");
     expected.require("peach=sour");
 
     first.applyChanges(second);
