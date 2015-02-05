@@ -37,6 +37,22 @@ TEST(TestAttributes, AttributeAsSet)
     ASSERT_EQ("[four,three,!two]", ost.str()) << "Attributes dump to ostream";
 }
 
+TEST(TestAttributes, CompoundAttributes)
+{
+    typedef WW::Attributes<std::string> attribute_t;
+    attribute_t collection("one,!one=1,one=2");
+    ASSERT_EQ(attribute_t("one=2,!one=1"), collection) << "compound attributes can have both forbdden and non-forbidden entries";
+
+    collection = attribute_t("two,two=2,two=3,two");
+    ASSERT_EQ(attribute_t("two"), collection) << "compound entries don't share space with non-compound elements with the same name as the prefix";
+
+    collection = attribute_t("!two=2,two=2");
+    ASSERT_EQ(attribute_t("two=2"), collection) << "exact name compound entries aren't allowed to exist as both forbidden and non-forbidden aspects";
+    
+    collection = attribute_t("two=2,!two");
+    ASSERT_EQ(attribute_t("two=2,!two"), collection) << "a compound item will be replaced by a forbidden non-compound element";
+}
+
 TEST(TestAttributes, InsertUsingIterators)
 {
     typedef WW::Attributes<std::string> attribute_t;
@@ -288,3 +304,21 @@ TEST(TestAttributes, TestDifferences)
     ASSERT_EQ(expected, changes) << "Compare expected differences with reality";
 }
 
+TEST(TestAttributes, TestCompoundDifferences)
+{
+    typedef WW::Attributes<std::string> attribute_t;
+    attribute_t state("apple=sweet");
+    attribute_t requirements("apple=sour");
+    attribute_t changes = state.differences(requirements);
+    EXPECT_EQ(attribute_t("!apple=sweet,apple=sour"), changes);
+
+    state        = attribute_t("pear=golden");
+    requirements = attribute_t("!pear");
+    changes      = state.differences(requirements);
+    EXPECT_EQ(attribute_t(), changes);
+
+    state        = attribute_t("orange");
+    requirements = attribute_t("orange=pithy");
+    changes      = state.differences(requirements);
+    EXPECT_EQ(attribute_t("orange=pithy,!orange"), changes);
+}

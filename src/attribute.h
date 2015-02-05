@@ -7,17 +7,7 @@
 #define INCLUDE_WW_ATTRIBUTE_HEADER
 
 #include <ostream>
-
-namespace {
-    template <typename _T>
-        _T noEquals(const _T& val) {
-            typename _T::size_type e = val.find_first_of("=");
-            if (e == _T::npos) {
-                return val;
-            }
-            return val.substr(0, e);
-        }
-}
+#include <iostream>
 
 namespace WW
 {
@@ -28,10 +18,39 @@ namespace WW
             typedef _T value_type;
             typedef typename _T::size_type size_type;
             
-            /// use our own set comparison functor to disallow the same value to be forbidden and not-forbidden
+            /// use our own set comparison functor to disallow the same value to be forbidden and not-forbidden.
             struct setCompare {
                 bool operator() (const Attribute& lhs, const Attribute& rhs) const {
-                    return noEquals(lhs.value()) < noEquals(rhs.value());
+                    typename _T::const_pointer lc = lhs.m_value.c_str();
+                    typename _T::const_pointer rc = rhs.m_value.c_str();
+                    typename _T::size_type offset = 0;
+                    typename _T::size_type lhs_size = lhs.m_value.size();
+                    typename _T::size_type rhs_size = rhs.m_value.size();
+                    typename _T::size_type len = lhs_size > rhs_size ? rhs_size : lhs_size;
+
+                    for (offset = 0; offset < len; ++offset) {
+                        const typename _T::value_type lhs_c = lc[offset];
+                        const typename _T::value_type rhs_c = rc[offset];
+                        if (lhs_c == rhs_c) {
+                           if (lhs_c != '=') {
+                               continue;
+                           }
+                           // both compound, both have same prefix
+                           if (lhs.m_value == rhs.m_value) {
+                               // compound items are exactly the same, then treat them as identical irrespective of which is forbidden
+                               return false;
+                           }
+                           return ((lhs.m_forbidden) ? 1 : 0) < ((rhs.m_forbidden) ? 1 : 0);
+                        }
+                        return lhs_c < rhs_c;
+                    }
+                    if (lhs_size == rhs_size) { // exactly the same, neither has '='
+                        return false;
+                    }
+                    if ((len == lhs_size) ? rc[len] : lc[len] == '=') { // compound prefix of one is same as entire other
+                        return ((lhs.m_forbidden) ? 1 : 0) < ((rhs.m_forbidden) ? 1 : 0);
+                    }
+                    return (len == lhs_size) ? true : false;
                 }
             };
 

@@ -102,7 +102,7 @@ namespace WW
                     const_iterator end = collection.end();
                     for (const_iterator it = collection.begin(); it != end; ++it) {
                         if (it->isForbidden()) {
-                            m_contents.erase(*it);
+                            m_contents.erase(it->value());
                         }
                         else
                         {
@@ -198,9 +198,20 @@ namespace WW
                 {
                     bool forbidden = it->isForbidden();
                     const_iterator match = m_contents.find(*it);
-                    if (match == notfound || match->value() != it->value()) {
+                    if (match == notfound) {
                         if (!forbidden) {
                             out_result.insert(*it);
+                        }
+                    }
+                    else if (match->value() != it->value()) { // compound
+                        if (!forbidden) {
+                            if (!match->isForbidden()) {
+                                out_result.insert(value_type(match->value(), true));
+                                out_result.insert(*it);
+                            }
+                        }
+                        else if (it->value().find('=') == value_type::value_type::npos) {
+                            out_result.insert(value_type(match->value(), true));
                         }
                     }
                     else if (forbidden)
