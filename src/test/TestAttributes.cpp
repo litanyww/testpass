@@ -171,10 +171,10 @@ TEST(TestAttributes, TestContainsAll)
     needle.forbid("one");
     ASSERT_FALSE(haystack.containsAll(needle)) << "Don't match when one of the values is forbidden";
 
-    ASSERT_TRUE(haystack.containsAll(WW::TestStep::attribute_list("one,five=5,two"))) << "Exact match on attribute with value";
-    ASSERT_FALSE(haystack.containsAll(WW::TestStep::attribute_list("one,five=4,two"))) << "Exact match on attribute with value";
-    ASSERT_FALSE(haystack.containsAll(WW::TestStep::attribute_list("one,five,two"))) << "Exact match on attribute with value";
-    ASSERT_FALSE(haystack.containsAll(WW::TestStep::attribute_list("one=1"))) << "Exact match on attribute with value";
+    ASSERT_TRUE(haystack.containsAll(attribute_t("one,five=5,two"))) << "Exact match on attribute with value";
+    ASSERT_FALSE(haystack.containsAll(attribute_t("one,five=4,two"))) << "Exact match on attribute with value";
+    ASSERT_FALSE(haystack.containsAll(attribute_t("one,five,two"))) << "Exact match on attribute with value";
+    ASSERT_FALSE(haystack.containsAll(attribute_t("one=1"))) << "Exact match on attribute with value";
 }
 
 TEST(TestAttributes, TestContainsAny)
@@ -212,9 +212,9 @@ TEST(TestAttributes, TestContainsAny)
     needle.require("six");
     ASSERT_FALSE(haystack.containsAny(needle)) << "Nothing in common, no matches";
 
-    ASSERT_TRUE(haystack.containsAny(WW::TestStep::attribute_list("five=5"))) << "Exact match on attribute with value";
-    ASSERT_FALSE(haystack.containsAny(WW::TestStep::attribute_list("five=4"))) << "Exact match on attribute with value";
-    ASSERT_FALSE(haystack.containsAny(WW::TestStep::attribute_list("one=1,five"))) << "Exact match on attribute with value";
+    ASSERT_TRUE(haystack.containsAny(attribute_t("five=5"))) << "Exact match on attribute with value";
+    ASSERT_FALSE(haystack.containsAny(attribute_t("five=4"))) << "Exact match on attribute with value";
+    ASSERT_FALSE(haystack.containsAny(attribute_t("one=1,five"))) << "Exact match on attribute with value";
 }
 
 TEST(TestAttributes, TestApplyChanges)
@@ -287,3 +287,4 @@ TEST(TestAttributes, TestDifferences)
     attribute_t changes = state.differences(requirements);
     ASSERT_EQ(expected, changes) << "Compare expected differences with reality";
 }
+

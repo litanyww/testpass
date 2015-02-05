@@ -200,10 +200,10 @@ int main(int argc, char* argv[])
                     {
                         WW::Steps::attributes_t arg_state;
                         if (argv[arg][2] != '\0') {
-                            arg_state = WW::TestStep::attribute_list(argv[arg] + 2);
+                            arg_state = WW::Steps::attributes_t(argv[arg] + 2);
                         }
                         else if (arg + 1 < argc) {
-                            arg_state = WW::TestStep::attribute_list(argv[++arg]);
+                            arg_state = WW::Steps::attributes_t(argv[++arg]);
                         }
                         state.insert(arg_state.begin(), arg_state.end());
                     }

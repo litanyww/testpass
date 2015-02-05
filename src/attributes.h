@@ -7,6 +7,7 @@
 #define INCLUDE_WW_ATTRIBUTES_HEADER
 
 #include "attribute.h"
+#include "utils.h"
 
 #include <set>
 
@@ -32,7 +33,7 @@ namespace WW
         public: // construction
             ~Attributes() {}
             Attributes() : m_contents() {}
-            Attributes(const _T& element) : m_contents() { m_contents.insert(value_type(element)); }
+            Attributes(const _T& element);
             Attributes(const value_type& element) : m_contents() { m_contents.insert(element); }
             Attributes(const Attributes& copy) : m_contents(copy.m_contents) {}
             Attributes& operator=(const Attributes& copy) { m_contents = copy.m_contents; return *this; }
@@ -210,6 +211,36 @@ namespace WW
                 return out_result;
             }
         };
+
+    template <typename _T>
+        Attributes<_T>::Attributes(const _T& element) : m_contents()
+        {
+            m_contents.clear();
+            std::string::size_type start = 0;
+            std::string::size_type pos = element.find(',');
+            while (pos != std::string::npos)
+            {
+                if (element[start] == '!')
+                {
+                    forbid(strip(element.substr(start + 1, pos - start - 1)));
+                }
+                else
+                {
+                    require(strip(element.substr(start, pos - start)));
+                }
+                start = pos + 1;
+                pos = element.find(',', start);
+            }
+            if (element[start] == '!')
+            {
+                forbid(strip(element.substr(start + 1)));
+            }
+            else
+            {
+                require(strip(element.substr(start)));
+            }
+        }
+
     template <class Stream, class _T>
         Stream&
         operator<<(Stream& ost, const Attributes<_T>& ob)

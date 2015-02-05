@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "operation.h"
+#include "TestStep.h"
 
 #include <sstream>
 
@@ -92,3 +93,18 @@ TEST(TestOperation, GetDifferences)
     ASSERT_EQ(expected, op.getDifferences(state)) << "Get a set of changes which would have to be applied to state to match requirements";
 }
 
+TEST(TestOperation, TestComplexForbid)
+{
+    typedef WW::Operation<std::string> operation_t;
+    typedef operation_t::value_type attributes_t;
+
+    attributes_t state("installed=candidate,onaccess");
+    attributes_t changes("!installed");
+    attributes_t expected("onaccess");
+
+    operation_t op;
+    op.changes(changes);
+    op.modify(state);
+
+    ASSERT_EQ(expected, state) << "Compound attributes are not removed as expected";
+}

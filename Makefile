@@ -6,7 +6,7 @@
 #
 
 OBJ_DIR = objs
-STEPS_SRCS = src/Steps.cpp src/TestStep.cpp
+STEPS_SRCS = src/Steps.cpp src/TestStep.cpp src/utils.cpp
 STEPS_OBJS = $(addprefix $(OBJ_DIR)/,$(STEPS_SRCS:%.cpp=%.o))                             
 STEPS_DEPS = $(STEPS_OBJS:%.o=%.d)
 STEPS_TARGET = libsteps.a

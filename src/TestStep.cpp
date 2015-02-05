@@ -137,11 +137,11 @@ WW::TestStep::TestStep(std::istream& ist)
             }
             if (key == "dependencies" || key == "requirements")
             {
-                m_operation.dependencies(attribute_list(value));
+                m_operation.dependencies(attributes_t(value));
             }
             else if (key == "changes")
             {
-                m_operation.changes(attribute_list(value));
+                m_operation.changes(attributes_t(value));
             }
             else if (key == "required")
             {
@@ -170,36 +170,6 @@ WW::TestStep::TestStep(std::istream& ist)
         }
     }
 
-}
-
-attributes_t
-WW::TestStep::attribute_list(const std::string& text)
-{
-    attributes_t result;
-    std::string::size_type start = 0;
-    std::string::size_type pos = text.find(',');
-    while (pos != std::string::npos)
-    {
-        if (text[start] == '!')
-        {
-            result.forbid(strip(text.substr(start + 1, pos - start - 1)));
-        }
-        else
-        {
-            result.require(strip(text.substr(start, pos - start)));
-        }
-        start = pos + 1;
-        pos = text.find(',', start);
-    }
-    if (text[start] == '!')
-    {
-        result.forbid(strip(text.substr(start + 1)));
-    }
-    else
-    {
-        result.require(strip(text.substr(start)));
-    }
-    return result;
 }
 
 std::string
