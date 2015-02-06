@@ -36,11 +36,7 @@ namespace WW
                                continue;
                            }
                            // both compound, both have same prefix
-                           if (lhs.m_value == rhs.m_value) {
-                               // compound items are exactly the same, then treat them as identical irrespective of which is forbidden
-                               return false;
-                           }
-                           return ((lhs.m_forbidden) ? 1 : 0) < ((rhs.m_forbidden) ? 1 : 0);
+                           return false; // treat as identical
                         }
                         return lhs_c < rhs_c;
                     }
@@ -48,7 +44,7 @@ namespace WW
                         return false;
                     }
                     if ((len == lhs_size) ? rc[len] : lc[len] == '=') { // compound prefix of one is same as entire other
-                        return ((lhs.m_forbidden) ? 1 : 0) < ((rhs.m_forbidden) ? 1 : 0);
+                        return false;
                     }
                     return (len == lhs_size) ? true : false;
                 }

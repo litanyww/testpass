@@ -184,6 +184,41 @@ namespace WW
                 return result;
             }
 
+            static void find_changes(const Attributes& state, const Attributes& target, Attributes& out_required, Attributes& out_discard)
+            {
+                out_required.clear();
+                out_discard.clear();
+
+                const_iterator end = target.end();
+                const_iterator notfound = state.end();
+
+                for (const_iterator t_it = target.begin(); t_it != end; ++t_it)
+                {
+                    bool forbidden = t_it->isForbidden();
+                    const_iterator match = state.m_contents.find(*t_it);
+                    if (match == notfound) {
+                        if (!forbidden) {
+                            out_required.insert(*t_it);
+                        }
+                    }
+                    else if (match->value() != t_it->value()) { // compound
+                        if (!forbidden) {
+                            if (!match->isForbidden()) {
+                                out_discard.insert(value_type(match->value(), true));
+                                out_required.insert(*t_it);
+                            }
+                        }
+                        else if (t_it->value().find('=') == value_type::value_type::npos) {
+                            out_discard.insert(value_type(match->value(), true));
+                        }
+                    }
+                    else if (forbidden) // match, but now forbidden
+                    {
+                        out_discard.forbid(t_it->value());
+                    }
+                }
+            }
+
             Attributes differences(const Attributes& attributes) const
             {
                 Attributes result;

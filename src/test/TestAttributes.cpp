@@ -41,16 +41,16 @@ TEST(TestAttributes, CompoundAttributes)
 {
     typedef WW::Attributes<std::string> attribute_t;
     attribute_t collection("one,!one=1,one=2");
-    ASSERT_EQ(attribute_t("one=2,!one=1"), collection) << "compound attributes can have both forbdden and non-forbidden entries";
+    ASSERT_EQ(attribute_t("one=2"), collection);
 
     collection = attribute_t("two,two=2,two=3,two");
-    ASSERT_EQ(attribute_t("two"), collection) << "compound entries don't share space with non-compound elements with the same name as the prefix";
+    ASSERT_EQ(attribute_t("two"), collection);
 
     collection = attribute_t("!two=2,two=2");
-    ASSERT_EQ(attribute_t("two=2"), collection) << "exact name compound entries aren't allowed to exist as both forbidden and non-forbidden aspects";
+    ASSERT_EQ(attribute_t("two=2"), collection);
     
     collection = attribute_t("two=2,!two");
-    ASSERT_EQ(attribute_t("two=2,!two"), collection) << "a compound item will be replaced by a forbidden non-compound element";
+    ASSERT_EQ(attribute_t("!two"), collection);
 }
 
 TEST(TestAttributes, InsertUsingIterators)
@@ -304,21 +304,18 @@ TEST(TestAttributes, TestDifferences)
     ASSERT_EQ(expected, changes) << "Compare expected differences with reality";
 }
 
-TEST(TestAttributes, TestCompoundDifferences)
+TEST(TestAttributes, TestFindChanges)
 {
     typedef WW::Attributes<std::string> attribute_t;
-    attribute_t state("apple=sweet");
-    attribute_t requirements("apple=sour");
-    attribute_t changes = state.differences(requirements);
-    EXPECT_EQ(attribute_t("!apple=sweet,apple=sour"), changes);
 
-    state        = attribute_t("pear=golden");
-    requirements = attribute_t("!pear");
-    changes      = state.differences(requirements);
-    EXPECT_EQ(attribute_t(), changes);
+    attribute_t required;
+    attribute_t discard;
 
-    state        = attribute_t("orange");
-    requirements = attribute_t("orange=pithy");
-    changes      = state.differences(requirements);
-    EXPECT_EQ(attribute_t("orange=pithy,!orange"), changes);
+    attribute_t::find_changes(attribute_t("one,two,three"), attribute_t("two,!three,four"), required, discard);
+    ASSERT_EQ(attribute_t("four"), required);
+    ASSERT_EQ(attribute_t("!three"), discard);
+
+    attribute_t::find_changes(attribute_t("one=1,two=2,three,four=4,five=5"), attribute_t("two=2,three=3,four=0x04,!five"), required, discard);
+    ASSERT_EQ(attribute_t("three=3,four=0x04"), required);
+    ASSERT_EQ(attribute_t("!three,!four=4,!five=5"), discard);
 }
