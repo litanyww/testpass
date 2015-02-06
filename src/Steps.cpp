@@ -373,3 +373,16 @@ WW::Steps::markNotRequired(const std::string& short_desc)
         }
     }
 }
+
+const WW::TestStep*
+WW::Steps::step(const std::string& short_desc) const
+{
+    const stepstore_t& store = m_pimpl->allSteps();
+
+    for (stepstore_t::const_iterator it = store.begin(); it != store.end(); ++it) {
+        if (it->short_desc() == short_desc) {
+            return &(*it);
+        }
+    }
+    return 0;
+}

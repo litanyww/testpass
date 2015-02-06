@@ -157,6 +157,15 @@ namespace {
 
             return result;
         }
+
+    void
+        unsetRequired(WW::Steps& steps)
+        {
+            WW::StepList required = steps.requiredSteps();
+            for (WW::StepList::const_iterator it = required.begin(); it != required.end(); ++it) {
+                steps.markNotRequired(it->short_desc());
+            }
+        }
 }
 
 int main(int argc, char* argv[])
@@ -164,6 +173,7 @@ int main(int argc, char* argv[])
     bool interactive_mode = false;
     unsigned int complexity = 2; // default complexity
     std::string logFile;
+    bool clearedRequired = false;
 
     bool loaded = false;
     WW::Steps steps;
@@ -184,6 +194,12 @@ int main(int argc, char* argv[])
 
                 case 'r': // required tests loaded from a specific folder
                     {
+                        if (!clearedRequired)
+                        {
+                            clearedRequired = true;
+                            unsetRequired(steps);
+                        }
+
                         WW::Steps required;
                         if (argv[arg][2] != '\0') {
                             addDirectory(argv[arg] + 2, required);
@@ -230,6 +246,19 @@ int main(int argc, char* argv[])
         {
             WW::Steps items;
             addDirectory(argv[arg], items);
+            if (clearedRequired) {
+                WW::StepList required = items.requiredSteps();
+                for (WW::StepList::const_iterator it = required.begin(); it != required.end(); ++it) {
+                    const WW::TestStep* step = steps.step(it->short_desc());
+                    bool required = (step && step->required());
+                    if (required != it->required()) {
+                        WW::TestStep copy(*it);
+                        copy.required(required);
+                        items.addStep(copy); // this will replace the original
+                    }
+                }
+            }
+
             steps.add(items);
             loaded = true;
         }
