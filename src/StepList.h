@@ -139,6 +139,11 @@ namespace WW
         void push_back(pointer val) { m_contents.push_back(val); }
         const_iterator find(const_reference val) const { return std::find(m_contents.begin(), m_contents.end(), &val); }
         iterator find(reference val) { return std::find(m_contents.begin(), m_contents.end(), &val); }
+        void append(const StepList& steps) {
+            for (container_t::const_iterator it = steps.m_contents.begin(); it != steps.m_contents.end(); ++it) {
+                m_contents.push_back(*it);
+            }
+        }
     };
 
     inline bool operator==(const StepList::iterator lhs, const StepList::iterator rhs) {
@@ -156,6 +161,13 @@ namespace WW
     inline bool operator!=(const StepList::const_iterator lhs, const StepList::const_iterator rhs) {
         return lhs.base() != rhs.base();
     }
+
+    inline StepList operator+(const StepList& lhs, const StepList& rhs) {
+        StepList result(lhs);
+        result.append(rhs);
+        return result;
+    }
+
     // For gtest
     inline void PrintTo(const StepList::iterator& it, ::std::ostream* str) {
         *str << "StepList::iterator";

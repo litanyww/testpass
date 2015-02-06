@@ -21,6 +21,14 @@ typedef WW::Steps::attributes_t attributes_t;
 typedef std::list<const WW::TestStep*> steplist_t;
 typedef std::list<WW::TestStep> stepstore_t;
 
+inline steplist_t operator+(const steplist_t& lhs, const steplist_t& rhs) {
+    steplist_t result = lhs;
+    for (steplist_t::const_iterator it = rhs.begin(); it != rhs.end(); ++it) {
+        result.push_back(*it);
+    }
+    return result;
+}
+
 namespace std
 {
     std::ostream& operator<<(std::ostream& ost, const steplist_t& list) {
@@ -125,18 +133,21 @@ namespace {
         solve(const attributes_t& state, const attributes_t& target, const stepstore_t& steps, steplist_t& out_result)
         {
             // DBGOUT("solve(state=" << state << ", target=" << target);
-            attributes_t missing;
-            state.differences(target, missing);
-            if (missing.size() == 0)
+            attributes_t changes_required;
+            attributes_t changes_to_discard;
+            attributes_t::find_changes(state, target, changes_required, changes_to_discard);
+            if (changes_required.size() == 0 && changes_to_discard.size() == 0)
             {
                 return 0;
             }
-            steplist_t candidates = findStepsProviding(steps, missing);
+            steplist_t candidates = findStepsProviding(steps, changes_required) + findStepsProviding(steps, changes_to_discard);
             if (candidates.size() == 0)
             {
                 // This one is unusable
-                return 9999;
-                //throw WW::TestException("No step defined which provides attributes");
+                // std::ostringstream ost;
+                // ost << "No step defined which provides attributes " << changes_required;
+                // throw WW::TestException(ost.str().c_str());
+                return 99999;
             }
 
             int cost = 9999;
