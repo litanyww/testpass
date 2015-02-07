@@ -41,6 +41,12 @@ inline steplist_t operator+(const WW::TestStep& step, const steplist_t& lhs) {
     return result;
 }
 
+inline attributes_t operator+(const attributes_t& lhs, const attributes_t& rhs) {
+    attributes_t result = lhs;
+    result.insert(rhs.begin(), rhs.end());
+    return result;
+}
+
 namespace std
 {
     std::ostream& operator<<(std::ostream& ost, const steplist_t& list) {
@@ -149,7 +155,9 @@ namespace {
                 return 99999;
             }
 
-            int cost = 9999;
+            int cost = 0;
+            bool solved = false;
+            attributes_t missing_attributes;
             out_result.clear();
             for (steplist_t::const_iterator it = candidates.begin(); it != candidates.end(); ++it)
             {
@@ -164,35 +172,28 @@ namespace {
                 else
                 {
                     outcome = solve(state, (*it)->operation().dependencies(), steps, list) + (*it)->cost();
+                    if (outcome > 0 && list.empty()) {
+                        // No solution was found
+                        attributes_t cr;
+                        attributes_t cd;
+                        attributes_t::find_changes(state, (*it)->operation().dependencies(), cr, cd);
+                        missing_attributes.insert(cd.begin(), cd.end());
+                        missing_attributes.insert(cr.begin(), cr.end());
+                        continue;
+                    }
                     list.push_back(*it);
                 }
                 if (list.size() > 0 && (out_result.size() == 0 || outcome < cost))
                 {
+                    solved = true;
                     cost = outcome;
                     out_result = list;
                 }
             }
 
-            if (cost >= 9999) {
+            if (!solved) {
                 std::ostringstream ost;
-                bool comma = false;
-                ost << "No solution for";
-                for (attributes_t::const_iterator it = changes_required.begin(); it != changes_required.end(); ++it) {
-                    if (comma) {
-                        ost << ",";
-                    } else {
-                        comma = true;
-                    }
-                    ost << " " << *it;
-                }
-                for (attributes_t::const_iterator it = changes_to_discard.begin(); it != changes_to_discard.end(); ++it) {
-                    if (comma) {
-                        ost << ",";
-                    } else {
-                        comma = true;
-                    }
-                    ost << " " << *it;
-                }
+                ost << "No solution for " << (changes_to_discard + changes_required) << ", missing attributes: " << missing_attributes;
                 throw WW::TestException(ost.str().c_str());
             }
 
