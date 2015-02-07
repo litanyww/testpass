@@ -26,6 +26,7 @@
 # check UsersManual.html
 flags = [
 '-Wall',
+'-Weffc++',
 '-Werror',
 
 # std is required

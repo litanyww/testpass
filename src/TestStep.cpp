@@ -60,20 +60,6 @@ namespace {
     typedef WW::TestStep::value_type attributes_t;
     typedef std::vector<std::string> strings_t;
 
-    strings_t splitOnLines(std::istream& ist)
-    {
-        strings_t result;
-        while (ist)
-        {
-            std::string line;
-            if (std::getline(ist, line))
-            {
-                result.push_back(line);
-            }
-        }
-        return result;
-    }
-
     strings_t split(const std::string& text, char ch = ',', size_t max_split = static_cast<size_t>(-1))
     {
         // 1,3
@@ -104,7 +90,6 @@ namespace {
     }
 }
 
-
 WW::TestStep::TestStep(std::istream& ist)
 : m_operation()
 , m_cost(0)
@@ -113,10 +98,10 @@ WW::TestStep::TestStep(std::istream& ist)
 , m_short()
 , m_script()
 {
-    strings_t lines = splitOnLines(ist);
-    for (strings_t::const_iterator it = lines.begin(); it != lines.end(); ++it)
-    {
-        strings_t x = split(*it, ':', 2);
+    std::string line;
+    while (ist) {
+        std::getline(ist, line);
+        strings_t x = split(line, ':', 2);
         if (x.size() == 2)
         {
             std::string key(x[0]);
@@ -125,13 +110,16 @@ WW::TestStep::TestStep(std::istream& ist)
             if (value == ":")
             {
                 value.clear();
-                for (++it; it != lines.end() && *it != "."; ++it)
-                {
+                while (ist) {
+                    std::getline(ist, line);
+                    if (strip(line) == ".") {
+                        break;
+                    }
                     if (value.size() > 0) {
                         value.append("\n");
                     }
-                    if (it->size() > 0) {
-                        value.append(*it);
+                    if (!strip(line).empty()) {
+                        value.append(line);
                     }
                 }
             }
@@ -169,7 +157,6 @@ WW::TestStep::TestStep(std::istream& ist)
             }
         }
     }
-
 }
 
 std::string
