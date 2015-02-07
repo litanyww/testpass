@@ -11,6 +11,7 @@
 namespace WW
 {
     std::string strip(const std::string& text);
+    bool executeScript(const std::string& script, std::string output);
 }
 
 #endif // INCLUDE_WW_UTILS_HEADER

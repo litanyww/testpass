@@ -125,12 +125,12 @@ namespace {
         {
             time_t when;
             time(&when);
-            ost << ":" << state <<
-                std::endl <<
-                step.short_desc() <<
+            ost << step.short_desc() <<
                 ":" << when <<
                 ":" << flags <<
                 ":" << sanitize(note) <<
+                std::endl <<
+                ":" << state <<
                 std::endl;
         }
 
@@ -287,9 +287,6 @@ int main(int argc, char* argv[])
         }
 
         if (state.size() == 0) {
-            const WW::TestStep* lastStep = steps.step(nonRequiredTests.back());
-            lastStep->operation().modify(logState);
-
             state = logState;
         }
     }
@@ -339,6 +336,7 @@ int main(int argc, char* argv[])
                 break;
             }
             bool hasScript = false;
+            std::string note;
 
             if (!it->script().empty()) {
                 hasScript = true;
@@ -346,7 +344,7 @@ int main(int argc, char* argv[])
             char dot = hasScript ? '*' : '.';
             char space = isFirstRequired(*it, requiredSteps) ? '>' : ' ';
             bool showStep = true;
-            std::string executedScript = "";
+            std::string outcome = "";
             std::cout << std::endl;
 
             for (int i = 0 ; i < 78 ; ++i) {
@@ -386,18 +384,23 @@ int main(int argc, char* argv[])
                 }
                 else if (hasScript && input[0] == 's')
                 {
-                    executedScript = "s";
-                    std::cout << std::endl << "TODO: EXECUTE SCRIPT: " << it->script() << std::endl <<
-                        std::endl;
+                    outcome += "s";
+                    std::string output;
+                    bool success = WW::executeScript(it->script(), output);
+                    note += output;
+                    if (!success) {
+                        outcome += "F";
+                    }
                 }
                 else if (input[0] == 'f')
                 {
-                    write_log(logFile, *it, std::string("f") + executedScript, WW::TestStep::strip(input.substr(1)), state);
+                    outcome += "f";
+                    note += WW::TestStep::strip(input.substr(1));
                     break;
                 }
                 else if (input[0] == 'n')
                 {
-                    write_log(logFile, *it, executedScript, WW::TestStep::strip(input.substr(1)), state);
+                    note += WW::TestStep::strip(input.substr(1));
                     break;
                 }
                 else if (input[0] == 'p')
@@ -426,11 +429,14 @@ int main(int argc, char* argv[])
                 }
                 else if (input.empty())
                 {
-                    write_log(logFile, *it, executedScript, "", state);
                     break;
                 }
             }
+            if (quitNow) {
+                break;
+            }
             it->operation().modify(state);
+            write_log(logFile, *it, outcome, note, state);
         }
     }
 

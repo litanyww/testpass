@@ -19,7 +19,7 @@ INCLUDE_DIRS = src gtest-1.7.0/include
 
 CXX = g++
 CXXFLAGS = -g $(CFLAGS) -Wall -Weffc++
-INCLUDES =  $(addprefix -I,$(INCLUDE_DIRS)) gtest-1.7.0/include
+INCLUDES =  $(addprefix -I,$(INCLUDE_DIRS))
 
 all : tests compile
 
