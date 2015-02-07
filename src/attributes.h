@@ -291,7 +291,6 @@ namespace WW
         Stream&
         operator<<(Stream& ost, const Attributes<_T>& ob)
         {
-            ost << "[";
             bool comma = false;
             for (typename Attributes<_T>::const_iterator it = ob.begin(); it != ob.end(); ++it) {
                 if (comma)
@@ -304,7 +303,6 @@ namespace WW
                 }
                 ost << *it;
             }
-            ost << "]";
             return ost;
         }
 }

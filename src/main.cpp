@@ -121,11 +121,13 @@ namespace {
         }
 
     void
-        write_log(std::ostream& ost, const WW::TestStep& step, const std::string& flags, const std::string& note)
+        write_log(std::ostream& ost, const WW::TestStep& step, const std::string& flags, const std::string& note, const WW::Steps::attributes_t& state)
         {
             time_t when;
             time(&when);
-            ost << step.short_desc() <<
+            ost << ":" << state <<
+                std::endl <<
+                step.short_desc() <<
                 ":" << when <<
                 ":" << flags <<
                 ":" << sanitize(note) <<
@@ -133,14 +135,14 @@ namespace {
         }
 
     void
-        write_log(const std::string& file, const WW::TestStep& step, const std::string& flags, const std::string& note)
+        write_log(const std::string& file, const WW::TestStep& step, const std::string& flags, const std::string& note, const WW::Steps::attributes_t& state)
         {
             std::ofstream ost(file.c_str(), std::ios_base::out | std::ios_base::app);
-            write_log(ost, step, flags, note);
+            write_log(ost, step, flags, note, state);
         }
 
     strings_t
-        read_log(const std::string& logFile)
+        read_log(const std::string& logFile, WW::Steps::attributes_t& state)
         {
             strings_t result;
             std::ifstream ifs(logFile.c_str());
@@ -151,7 +153,12 @@ namespace {
                 std::getline(ifs, text);
                 std::string::size_type colon = text.find_first_of(':');
                 if (colon != std::string::npos) {
-                    result.push_back(text.substr(0, colon));
+                    if (colon == 0) {
+                        state = WW::Steps::attributes_t(text.substr(1));
+                    }
+                    else {
+                        result.push_back(text.substr(0, colon));
+                    }
                 }
             }
 
@@ -264,8 +271,6 @@ int main(int argc, char* argv[])
         }
     }
 
-    steps.setState(state);
-
     if (!loaded) {
         addDirectory("steps", steps);
     }
@@ -274,11 +279,22 @@ int main(int argc, char* argv[])
     WW::StepList requiredSteps;
 
     if (interactive_mode) {
-        strings_t nonRequiredTests = read_log(logFile);
+        WW::Steps::attributes_t logState;
+        strings_t nonRequiredTests = read_log(logFile, logState);
         for (strings_t::const_iterator it = nonRequiredTests.begin(); it != nonRequiredTests.end(); ++it) {
             steps.markNotRequired(*it);
+
+        }
+
+        if (state.size() == 0) {
+            const WW::TestStep* lastStep = steps.step(nonRequiredTests.back());
+            lastStep->operation().modify(logState);
+
+            state = logState;
         }
     }
+
+    steps.setState(state);
 
     try
     {
@@ -366,12 +382,12 @@ int main(int argc, char* argv[])
                 }
                 else if (input[0] == 'f')
                 {
-                    write_log(logFile, *it, std::string("f") + executedScript, WW::TestStep::strip(input.substr(1)));
+                    write_log(logFile, *it, std::string("f") + executedScript, WW::TestStep::strip(input.substr(1)), state);
                     break;
                 }
                 else if (input[0] == 'n')
                 {
-                    write_log(logFile, *it, executedScript, WW::TestStep::strip(input.substr(1)));
+                    write_log(logFile, *it, executedScript, WW::TestStep::strip(input.substr(1)), state);
                     break;
                 }
                 else if (input[0] == 'p')
@@ -400,7 +416,7 @@ int main(int argc, char* argv[])
                 }
                 else if (input.empty())
                 {
-                    write_log(logFile, *it, executedScript, "");
+                    write_log(logFile, *it, executedScript, "", state);
                     break;
                 }
             }
