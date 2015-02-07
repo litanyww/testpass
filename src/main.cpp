@@ -347,6 +347,16 @@ int main(int argc, char* argv[])
             char space = isFirstRequired(*it, requiredSteps) ? '>' : ' ';
             bool showStep = true;
             std::string executedScript = "";
+            std::cout << std::endl;
+
+            for (int i = 0 ; i < 78 ; ++i) {
+                std::cout << '-';
+            }
+
+            for (int i = 0 ; i < 5 ; ++i) {
+                std::cout << std::endl;
+            }
+
             for (;;) {
                 if (showStep)
                 {
