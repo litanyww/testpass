@@ -337,25 +337,6 @@ int main(int argc, char* argv[])
             {
                 break;
             }
-            bool hasScript = false;
-            std::string note;
-
-            if (!it->script().empty()) {
-                hasScript = true;
-            }
-            char dot = hasScript ? '*' : '.';
-            char space = isFirstRequired(*it, requiredSteps) ? '>' : ' ';
-            bool showStep = true;
-            std::string outcome = "";
-            std::cout << std::endl;
-
-            for (int i = 0 ; i < 78 ; ++i) {
-                std::cout << '-';
-            }
-
-            for (int i = 0 ; i < 5 ; ++i) {
-                std::cout << std::endl;
-            }
 
             std::string description = WW::strip(it->description());
             if (description[0] == '@') {
@@ -374,6 +355,26 @@ int main(int argc, char* argv[])
                 }
             }
 
+            bool hasScript = false;
+            std::string note;
+
+            if (!script.empty()) {
+                hasScript = true;
+            }
+            char dot = hasScript ? '*' : '.';
+            char space = isFirstRequired(*it, requiredSteps) ? '>' : ' ';
+            bool showStep = true;
+            std::string outcome = "";
+            std::cout << std::endl;
+
+            for (int i = 0 ; i < 78 ; ++i) {
+                std::cout << '-';
+            }
+
+            for (int i = 0 ; i < 5 ; ++i) {
+                std::cout << std::endl;
+            }
+
             for (;;) {
                 if (showStep)
                 {
@@ -383,6 +384,11 @@ int main(int argc, char* argv[])
                         description << std::endl <<
                         std::endl;
                     showStep = false;
+                }
+                if (description.empty() && script.empty()) {
+                    // there's no interactive content; the step likely only exists to resolve dependencies
+                    std::cout << "Skipping step because it has no content" << std::endl;
+                    break;
                 }
                 std::cout <<
                     "State: " << state << std::endl;
