@@ -6,6 +6,8 @@
 #include "utils.h"
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -16,6 +18,9 @@
 #include <sys/select.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+
+#define DEFAULT_EDITOR "vi"
+#define TEMP_TEMPLATE "/tmp/testXXXXXX"
 
 std::string
 WW::strip(const std::string& text)
@@ -30,10 +35,9 @@ WW::strip(const std::string& text)
     return text.substr(start, 1 + end - start);
 }
 
-#define TEMP_TEMPLATE "/tmp/testXXXXXX"
 namespace {
     std::string
-        makeScript(const std::string& contents)
+        makeTempFileWithContent(const std::string& contents)
         {
             char path[sizeof(TEMP_TEMPLATE)]; // sizeof includes the NUL terminator
             memcpy(path, TEMP_TEMPLATE, sizeof(TEMP_TEMPLATE));
@@ -45,6 +49,19 @@ namespace {
             }
             close(fd);
             return path;
+        }
+
+    std::string
+        readFileContent(const std::string path)
+        {
+            std::ostringstream result;
+            std::ifstream ifs(path.c_str());
+            while (ifs.good()) {
+                std::string line;
+                std::getline(ifs, line);
+                result << line << std::endl;
+            }
+            return result.str();
         }
 }
 
@@ -81,7 +98,7 @@ bool
 WW::executeScript(const std::string& script, std::string output)
 {
     bool result = true;
-    const std::string pathToScript = makeScript(script);
+    const std::string pathToScript = makeTempFileWithContent(script);
     int pipe_fd[2];
     if (pipe(pipe_fd) == -1)
     {
@@ -124,5 +141,46 @@ WW::executeScript(const std::string& script, std::string output)
     close(pipe_fd[0]);
     unlink(pathToScript.c_str());
 
+    return result;
+}
+
+std::string
+WW::externalEditor(const std::string contentToEdit)
+{
+    std::string file = makeTempFileWithContent(contentToEdit);
+
+    char defaultEditor[sizeof(DEFAULT_EDITOR)];
+    memcpy(defaultEditor, DEFAULT_EDITOR, sizeof(DEFAULT_EDITOR));
+
+    char* editor = getenv("EDITOR");
+    if (editor == 0) {
+        editor = defaultEditor;
+    }
+
+    int child = fork();
+    switch (child) {
+        case 0: // child
+            {
+                char* fileToEdit = const_cast<char*>(file.c_str());
+                char* const argv[] = {editor, fileToEdit, 0 };
+                execvp(editor, argv);
+                exit(1);
+            }
+        case -1: // error
+            {
+                std::cerr << "ERROR: Failed to fork: " << strerror(errno) << std::endl;
+                return "";
+            }
+        default:
+            break;
+    }
+
+    int status;
+    while (child != waitpid(child, &status, 0)) {
+        std::cerr << "DEBUG: Error while waiting for child." << std::endl;
+    }
+
+    std::string result = readFileContent(file);
+    unlink(file.c_str());
     return result;
 }

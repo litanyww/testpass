@@ -101,7 +101,9 @@ namespace {
             std::string::size_type start = 0;
             while ((pos = text.find_first_of("\n\t", start)) != std::string::npos)
             {
-                ost << text.substr(start, pos - start - 1);
+                if (pos > start) {
+                    ost << text.substr(start, pos - start);
+                }
                 switch (text[pos])
                 {
                     case '\n':
@@ -398,9 +400,20 @@ int main(int argc, char* argv[])
                     note += WW::TestStep::strip(input.substr(1));
                     break;
                 }
+                else if (input[0] == 'F')
+                {
+                    outcome += "f";
+                    note = WW::externalEditor(note);
+                    break;
+                }
                 else if (input[0] == 'n')
                 {
                     note += WW::TestStep::strip(input.substr(1));
+                    break;
+                }
+                else if (input[0] == 'N')
+                {
+                    note = WW::externalEditor(note);
                     break;
                 }
                 else if (input[0] == 'p')
