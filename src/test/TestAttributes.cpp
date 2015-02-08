@@ -34,7 +34,7 @@ TEST(TestAttributes, AttributeAsSet)
     collection.require("four");
     std::ostringstream ost;
     ost << collection;
-    ASSERT_EQ("[four,three,!two]", ost.str()) << "Attributes dump to ostream";
+    ASSERT_EQ("four,three,!two", ost.str()) << "Attributes dump to ostream";
 }
 
 TEST(TestAttributes, CompoundAttributes)
