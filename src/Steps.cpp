@@ -11,6 +11,7 @@
 #include <list>
 #include <deque>
 #include <iostream>
+#include <iomanip>
 
 #include <time.h>
 
@@ -293,11 +294,17 @@ namespace {
         {
             steplist_t order;
 
+            std::cerr << "Compiling:    ";
+            unsigned int count = pending.size();
+            unsigned int item = 0;
             for (steplist_t::const_iterator it = pending.begin(); it != pending.end(); ++it)
             {
+                unsigned int percent = item++ * 100 / count;
+                std::cerr << "\b\b\b" << std::setw(2) << percent << "%";
                 steplist_t::iterator insert_point = bestInsertionPoint(state, order, **it, steps);
                 order.insert(insert_point, *it);
             }
+            std::cerr << "\b\b\bdone!" << std::endl;
             return solveForSequence(state, order.begin(), order.end(), steps, out_result);
         }
 
