@@ -357,13 +357,30 @@ int main(int argc, char* argv[])
                 std::cout << std::endl;
             }
 
+            std::string description = WW::strip(it->description());
+            if (description[0] == '@') {
+                // Use description from another test step
+                const WW::TestStep* donor = steps.step(description.substr(1));
+                if (donor != 0) {
+                    description = donor->description();
+                }
+            }
+            std::string script = WW::strip(it->script());
+            if (script[0] == '@') {
+                // Use script from another test step
+                const WW::TestStep* donor = steps.step(script.substr(1));
+                if (donor != 0) {
+                    script = donor->script();
+                }
+            }
+
             for (;;) {
                 if (showStep)
                 {
                     std::cout << std::endl <<
                         ++item << dot << space << it->short_desc() << std::endl <<
                         std::endl <<
-                        it->description() << std::endl <<
+                        description << std::endl <<
                         std::endl;
                     showStep = false;
                 }
@@ -381,14 +398,14 @@ int main(int argc, char* argv[])
                 input = WW::TestStep::strip(input);
                 if (hasScript && input[0] == 'S')
                 {
-                    std::cout << std::endl << it->script() << std::endl <<
+                    std::cout << std::endl << script << std::endl <<
                         std::endl;
                 }
                 else if (hasScript && input[0] == 's')
                 {
                     outcome += "s";
                     std::string output;
-                    bool success = WW::executeScript(it->script(), output);
+                    bool success = WW::executeScript(script, output);
                     note += output;
                     if (!success) {
                         outcome += "F";
