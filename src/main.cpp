@@ -34,9 +34,22 @@ namespace {
             {
                 while ((entry = readdir(dir)) != 0)
                 {
-                    if (entry->d_name[0] != '.')
-                    {
-                        result.push_back(std::string(path) + "/" + entry->d_name);
+                    if (entry->d_name[0] != '.') {
+                        switch (entry->d_type) {
+                            case DT_REG:
+                            case DT_LNK:
+                                result.push_back(std::string(path) + "/" + entry->d_name);
+                                break;
+                            case DT_DIR:
+                                {
+                                    strings_t subdir = getFilesInDirectory(std::string(path) + "/" + entry->d_name);
+                                    result.insert(result.end(), subdir.begin(), subdir.end());
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+
                     }
                 }
                 closedir(dir);
