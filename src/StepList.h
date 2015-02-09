@@ -133,10 +133,23 @@ namespace WW
         const_reverse_iterator crend() const { return const_reverse_iterator(m_contents.crend()); }
 #endif
     public:
+        void clear() { return m_contents.clear(); }
+        bool empty() { return m_contents.empty(); }
+#if __cplusplus >= 201103L
+        void splice(const_iterator __position, StepList&& __x) noexcept { m_contents.splice(__position.base(), __x.m_contents); }
+#else
+        void splice(iterator __position, StepList& __x) { m_contents.splice(__position.base(), __x.m_contents); }
+#endif
+
         size_type size() const { return m_contents.size(); }
         void erase(iterator position) { m_contents.erase(position.base()); }
         void erase(iterator first, iterator last) { m_contents.erase(first.base(), last.base()); }
         void push_back(pointer val) { m_contents.push_back(val); }
+#if __cplusplus >= 201103L
+        iterator insert(const_iterator pos, const value_type& val) { return iterator(m_contents.insert(pos.base(), &val)); }
+#else
+        iterator insert(iterator pos, const value_type& val) { return iterator(m_contents.insert(pos.base(), &val)); }
+#endif
         const_iterator find(const_reference val) const { return std::find(m_contents.begin(), m_contents.end(), &val); }
         iterator find(reference val) { return std::find(m_contents.begin(), m_contents.end(), &val); }
         void append(const StepList& steps) {
@@ -167,6 +180,14 @@ namespace WW
         result.append(rhs);
         return result;
     }
+
+    inline StepList operator+(const StepList& lhs, const TestStep& val) {
+        StepList result = lhs;
+        result.push_back(&val);
+        return result;
+    }
+
+    inline StepList operator+(const TestStep& val, const StepList& lhs) { return lhs + val; }
 
     // For gtest
     inline void PrintTo(const StepList::iterator& it, ::std::ostream* str) {

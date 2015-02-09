@@ -5,10 +5,10 @@
 
 #include "Steps.h"
 
+#include "StepList.h"
 #include "TestException.h"
 
 #include <sstream>
-#include <list>
 #include <deque>
 #include <iostream>
 #include <iomanip>
@@ -19,28 +19,7 @@
 #define DBGOUT(_x) do { std::cerr << "DEBUG: " << _x << std::endl; } while (0)
 
 typedef WW::Steps::attributes_t attributes_t;
-typedef std::list<const WW::TestStep*> steplist_t;
 typedef std::list<WW::TestStep> stepstore_t;
-
-inline steplist_t operator+(const steplist_t& lhs, const steplist_t& rhs) {
-    steplist_t result = lhs;
-    for (steplist_t::const_iterator it = rhs.begin(); it != rhs.end(); ++it) {
-        result.push_back(*it);
-    }
-    return result;
-}
-
-inline steplist_t operator+(const steplist_t& lhs, const WW::TestStep& step) {
-    steplist_t result = lhs;
-    result.push_back(&step);
-    return result;
-}
-
-inline steplist_t operator+(const WW::TestStep& step, const steplist_t& lhs) {
-    steplist_t result = lhs;
-    result.insert(result.begin(), &step);
-    return result;
-}
 
 inline attributes_t operator+(const attributes_t& lhs, const attributes_t& rhs) {
     attributes_t result = lhs;
@@ -50,10 +29,10 @@ inline attributes_t operator+(const attributes_t& lhs, const attributes_t& rhs) 
 
 namespace std
 {
-    std::ostream& operator<<(std::ostream& ost, const steplist_t& list) {
+    std::ostream& operator<<(std::ostream& ost, const WW::StepList& list) {
         ost << "[";
         bool comma = false;
-        for (steplist_t::const_iterator it = list.begin(); it != list.end(); ++it)
+        for (WW::StepList::const_iterator it = list.begin(); it != list.end(); ++it)
         {
             if (comma) {
                 ost << ", ";
@@ -61,7 +40,7 @@ namespace std
             else {
                 comma = true;
             }
-            ost << **it;
+            ost << *it;
         }
         ost << "]";
         return ost;
@@ -90,7 +69,7 @@ public:
     const stepstore_t& allSteps() const { return m_allSteps; }
     void setState(const attributes_t& state) { m_startState = state; }
 
-    steplist_t calculate(unsigned int complexity) const;
+    WW::StepList calculate(unsigned int complexity) const;
 
 private:
     attributes_t m_startState;
@@ -99,9 +78,9 @@ private:
 
 namespace {
 
-    steplist_t findStepsProviding(const stepstore_t& steps, const attributes_t& attributes)
+    WW::StepList findStepsProviding(const stepstore_t& steps, const attributes_t& attributes)
     {
-        steplist_t result;
+        WW::StepList result;
         for (stepstore_t::const_iterator it = steps.begin(); it != steps.end(); ++it)
         {
             if (it->operation().changes().containsAny(attributes))
@@ -113,17 +92,17 @@ namespace {
     }
 
     void
-        applyState(attributes_t& state, const steplist_t& steps)
+        applyState(attributes_t& state, const WW::StepList& steps)
         {
-            for (steplist_t::const_iterator it = steps.begin(); it != steps.end(); ++it) {
+            for (WW::StepList::const_iterator it = steps.begin(); it != steps.end(); ++it) {
 #ifdef DEBUG
-                if (!(*it)->operation().isValid(state))
+                if (!it->operation().isValid(state))
                 {
-                    DBGOUT("ERROR: unexpectedly unable to apply solved state " << *(*it) << " " << (*it)->operation() << " onto " << state);
+                    DBGOUT("ERROR: unexpectedly unable to apply solved state " << *it << " " << it->operation() << " onto " << state);
                     throw WW::TestException("Unable to apply cheapest solution");
                 }
 #endif
-                (*it)->operation().modify(state);
+                it->operation().modify(state);
             }
         }
 
@@ -136,7 +115,7 @@ namespace {
      * Determine the cheapest set of steps to iterate from state to target.  This function will be called recursively
      */
     int
-        solve(const attributes_t& state, const attributes_t& target, const stepstore_t& steps, steplist_t& out_result)
+        solve(const attributes_t& state, const attributes_t& target, const stepstore_t& steps, WW::StepList& out_result)
         {
             out_result.clear();
             // DBGOUT("solve(state=" << state << ", target=" << target);
@@ -147,7 +126,7 @@ namespace {
             {
                 return 0;
             }
-            steplist_t candidates = findStepsProviding(steps, changes_required) + findStepsProviding(steps, changes_to_discard);
+            WW::StepList candidates = findStepsProviding(steps, changes_required) + findStepsProviding(steps, changes_to_discard);
             if (candidates.size() == 0)
             {
                 // This one is unusable
@@ -160,29 +139,29 @@ namespace {
             bool solved = false;
             attributes_t missing_attributes;
             out_result.clear();
-            for (steplist_t::const_iterator it = candidates.begin(); it != candidates.end(); ++it)
+            for (WW::StepList::const_iterator it = candidates.begin(); it != candidates.end(); ++it)
             {
-                steplist_t list;
+                WW::StepList list;
                 int outcome = 0;
-                if ((*it)->operation().isValid(state))
+                if (it->operation().isValid(state))
                 {
                     // we don't need to search, it is immediately valid
-                    list.push_back(*it);
-                    outcome = (*it)->cost();
+                    list.push_back(&(*it));
+                    outcome = it->cost();
                 }
                 else
                 {
-                    outcome = solve(state, (*it)->operation().dependencies(), steps, list) + (*it)->cost();
+                    outcome = solve(state, it->operation().dependencies(), steps, list) + it->cost();
                     if (outcome > 0 && list.empty()) {
                         // No solution was found
                         attributes_t cr;
                         attributes_t cd;
-                        attributes_t::find_changes(state, (*it)->operation().dependencies(), cr, cd);
+                        attributes_t::find_changes(state, it->operation().dependencies(), cr, cd);
                         missing_attributes.insert(cd.begin(), cd.end());
                         missing_attributes.insert(cr.begin(), cr.end());
                         continue;
                     }
-                    list.push_back(*it);
+                    list.push_back(&(*it));
                 }
                 if (list.size() > 0 && (out_result.size() == 0 || outcome < cost))
                 {
@@ -210,53 +189,53 @@ namespace {
 
             attributes_t candidateState = state;
             applyState(candidateState, out_result);
-            steplist_t otherBits;
+            WW::StepList otherBits;
             cost += solve(candidateState, target, steps, otherBits);
             out_result.splice(out_result.end(), otherBits);
             return cost;
         }
 
     void
-        append(steplist_t& dst, const steplist_t& src) {
-            for (steplist_t::const_iterator it = src.begin(); it != src.end(); ++it) {
-                dst.push_back(*it);
+        append(WW::StepList& dst, const WW::StepList& src) {
+            for (WW::StepList::const_iterator it = src.begin(); it != src.end(); ++it) {
+                dst.push_back(&(*it));
             }
         }
 
     int
-        solveForSequence(const attributes_t& startState, steplist_t::const_iterator begin, steplist_t::const_iterator end, const stepstore_t& steps, steplist_t& out_result)
+        solveForSequence(const attributes_t& startState, WW::StepList::const_iterator begin, WW::StepList::const_iterator end, const stepstore_t& steps, WW::StepList& out_result)
         {
             // DBGOUT("(" << count << ") solveAll(state=" << state << ", pending=" << pending << ", steps, out_result, count)");
             out_result.clear();
             attributes_t state = startState;
             int cost = 0;
-            for (steplist_t::const_iterator it = begin; it != end; ++it) {
-                steplist_t solution;
-                int item_cost = solve(state, (*it)->operation().dependencies(), steps, solution);
+            for (WW::StepList::const_iterator it = begin; it != end; ++it) {
+                WW::StepList solution;
+                int item_cost = solve(state, it->operation().dependencies(), steps, solution);
                 if (solution.size() > 0)
                 {
                     cost += item_cost;
                     applyState(state, solution);
                     append(out_result, solution);
                 }
-                cost += (*it)->cost();
-                (*it)->operation().modify(state);
-                out_result.push_back(*it);
+                cost += it->cost();
+                it->operation().modify(state);
+                out_result.push_back(&(*it));
             }
             return cost;
         }
 
-    steplist_t::iterator
-        bestInsertionPoint(const attributes_t& startState, steplist_t& sequence, const WW::TestStep& step, const stepstore_t& steps)
+    WW::StepList::iterator
+        bestInsertionPoint(const attributes_t& startState, WW::StepList& sequence, const WW::TestStep& step, const stepstore_t& steps)
         {
             // std::list::insert() requires a non-const iterator (fixed in
             // C++11), which means this function must return a non-const
             // iterator, which in turn means that sequence must be non-const.
             // Please fix when moving to C++11.
             // DBGOUT("bestInsertionPoint(startState, sequence=" << sequence << ", step=" << step << ", steps)");
-            steplist_t solution;
+            WW::StepList solution;
             attributes_t accumulated_state = startState;
-            steplist_t::iterator insert_before = sequence.end();
+            WW::StepList::iterator insert_before = sequence.end();
             int cheapest = 0;
             int accumulated_cost = 0;
 
@@ -264,7 +243,7 @@ namespace {
             // changing nothing.  We just remember and subsequently return the
             // best insertion point.
 
-            for (steplist_t::iterator it  = sequence.begin(); it != sequence.end(); ++it) {
+            for (WW::StepList::iterator it  = sequence.begin(); it != sequence.end(); ++it) {
                 attributes_t state = accumulated_state;
                 int cost = accumulated_cost + solve(state, step.operation().dependencies(), steps, solution);
                 applyState(state, solution);
@@ -275,10 +254,10 @@ namespace {
                     cheapest = cost;
                     insert_before = it;
                 }
-                accumulated_cost += solve(accumulated_state, (*it)->operation().dependencies(), steps, solution);
-                accumulated_cost += (*it)->cost();
+                accumulated_cost += solve(accumulated_state, it->operation().dependencies(), steps, solution);
+                accumulated_cost += it->cost();
                 applyState(accumulated_state, solution);
-                (*it)->operation().modify(accumulated_state);
+                it->operation().modify(accumulated_state);
             }
             // We finally get to work out whether the best insertion point is right at the end.
             accumulated_cost += solve(accumulated_state, step.operation().dependencies(), steps, solution);
@@ -290,18 +269,18 @@ namespace {
         }
 
     int
-        solveAll(const attributes_t& state, const steplist_t& pending, const stepstore_t& steps, steplist_t& out_result)
+        solveAll(const attributes_t& state, const WW::StepList& pending, const stepstore_t& steps, WW::StepList& out_result)
         {
-            steplist_t order;
+            WW::StepList order;
 
             std::cerr << "Compiling:    ";
             unsigned int count = pending.size();
             unsigned int item = 0;
-            for (steplist_t::const_iterator it = pending.begin(); it != pending.end(); ++it)
+            for (WW::StepList::const_iterator it = pending.begin(); it != pending.end(); ++it)
             {
                 unsigned int percent = item++ * 100 / count;
                 std::cerr << "\b\b\b" << std::setw(2) << percent << "%";
-                steplist_t::iterator insert_point = bestInsertionPoint(state, order, **it, steps);
+                WW::StepList::iterator insert_point = bestInsertionPoint(state, order, *it, steps);
                 order.insert(insert_point, *it);
             }
             std::cerr << "\b\b\bdone!" << std::endl;
@@ -309,7 +288,7 @@ namespace {
         }
 
     void
-        clone_required(const stepstore_t& allSteps, steplist_t& list)
+        clone_required(const stepstore_t& allSteps, WW::StepList& list)
         {
             list.clear();
             for (stepstore_t::const_iterator it = allSteps.begin(); it != allSteps.end(); ++it)
@@ -323,14 +302,14 @@ namespace {
         }
 }
 
-steplist_t
+WW::StepList
 WW::Steps::Impl::calculate(unsigned int complexity) const
 {
     //DBGOUT("calculate()");
     static_cast<void>(complexity); // unused
 
-    steplist_t pending;
-    steplist_t chain;
+    StepList pending;
+    StepList chain;
     clone_required(m_allSteps, pending);
 
     attributes_t state = m_startState;
@@ -393,7 +372,7 @@ WW::Steps::addStep(const TestStep& step)
 WW::StepList
 WW::Steps::calculate(unsigned int complexity) const
 {
-    steplist_t chain = m_pimpl->calculate(complexity);
+    StepList chain = m_pimpl->calculate(complexity);
     return StepList(chain);
 }
 
@@ -418,7 +397,7 @@ WW::Steps::setState(const attributes_t& state)
 WW::StepList
 WW::Steps::requiredSteps() const
 {
-    WW::StepList result;
+    StepList result;
     for (stepstore_t::const_iterator it = m_pimpl->allSteps().begin(); it != m_pimpl->allSteps().end(); ++it)
     {
         if (it->required()) {
