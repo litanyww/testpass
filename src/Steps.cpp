@@ -69,7 +69,7 @@ public:
     const stepstore_t& allSteps() const { return m_allSteps; }
     void setState(const attributes_t& state) { m_startState = state; }
 
-    WW::StepList calculate(unsigned int complexity) const;
+    WW::StepList calculate() const;
 
 private:
     attributes_t m_startState;
@@ -303,10 +303,9 @@ namespace {
 }
 
 WW::StepList
-WW::Steps::Impl::calculate(unsigned int complexity) const
+WW::Steps::Impl::calculate() const
 {
     //DBGOUT("calculate()");
-    static_cast<void>(complexity); // unused
 
     StepList pending;
     StepList chain;
@@ -370,9 +369,9 @@ WW::Steps::addStep(const TestStep& step)
 }
 
 WW::StepList
-WW::Steps::calculate(unsigned int complexity) const
+WW::Steps::calculate() const
 {
-    StepList chain = m_pimpl->calculate(complexity);
+    StepList chain = m_pimpl->calculate();
     return StepList(chain);
 }
 

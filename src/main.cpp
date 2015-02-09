@@ -85,11 +85,9 @@ namespace {
             "specified directories" << std::endl <<
             std::endl <<
             "Options:" << std::endl <<
-            " -c COMPLEXITY\thigher for more suscinct results which takes longer to" << std::endl <<
-            "\t\tgenerate (default 2)" << std::endl <<
-            " -r DIRECTORY\tspecify directory containing required tests" << std::endl <<
             " -s CONDITIONS\tspecify the starting state" << std::endl <<
-            " -i\t\tinteractive mode" << std::endl <<
+            " -r DIRECTORY\tspecify directory containing required tests" << std::endl <<
+            " -i LOGFILE\tinteractive mode" << std::endl <<
             std::endl;
         }
 
@@ -193,7 +191,6 @@ namespace {
 int main(int argc, char* argv[])
 {
     bool interactive_mode = false;
-    unsigned int complexity = 2; // default complexity
     std::string logFile;
     bool clearedRequired = false;
 
@@ -205,15 +202,6 @@ int main(int argc, char* argv[])
     {
         if (argv[arg][0] == '-') {
             switch (argv[arg][1]) {
-                case 'c': // complexity
-                    if (argv[arg][2] != '\0') {
-                        complexity = atoi(argv[arg] + 2);
-                    }
-                    else if (arg + 1 < argc) {
-                        complexity = atoi(argv[++arg]);
-                    }
-                    break;
-
                 case 'r': // required tests loaded from a specific folder
                     {
                         if (!clearedRequired)
@@ -310,7 +298,7 @@ int main(int argc, char* argv[])
 
     try
     {
-        solution = steps.calculate(complexity);
+        solution = steps.calculate();
         requiredSteps = steps.requiredSteps();
     } catch (WW::TestException& e)
     {
@@ -470,7 +458,9 @@ int main(int argc, char* argv[])
                         std::cout << "S\t\tShow automation script associated with this step" << std::endl;
                     }
                     std::cout << "f REASON\tLog a failure for this test step" << std::endl <<
+                        "F\t\tDescribe the failure using an external editor" << std::endl <<
                         "n NOTE\t\tAdd a note for this test step" << std::endl <<
+                        "N\t\tEdit a note using an external editor" << std::endl <<
                         "p\t\tShow the test step details" << std::endl <<
                         "q\t\tQuit the test pass" << std::endl <<
                         "?\t\tShow this help" << std::endl <<

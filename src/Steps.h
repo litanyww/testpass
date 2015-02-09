@@ -40,7 +40,7 @@ namespace WW
         void markNotRequired(const std::string& short_desc);
         void addStep(const TestStep& step);
         void setState(const attributes_t& state);
-        StepList calculate(unsigned int complexity = 1) const; // Generate the test pass
+        StepList calculate() const; // Generate the test pass
         StepList requiredSteps() const;
         const TestStep* step(const std::string& short_desc) const;
 
