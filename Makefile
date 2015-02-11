@@ -17,8 +17,9 @@ TEST_DEPS = $(TEST_OBJS:%.o=%.d)
 
 INCLUDE_DIRS = src gtest-1.7.0/include
 
+CFLAGS = -g
 CXX = g++
-CXXFLAGS = -g $(CFLAGS) -Wall -Weffc++
+CXXFLAGS = $(CFLAGS) -Wall -Weffc++
 INCLUDES =  $(addprefix -I,$(INCLUDE_DIRS))
 
 all : tests testpass
