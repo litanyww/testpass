@@ -113,6 +113,7 @@ namespace WW
         StepList() : m_contents() {}
         StepList(const StepList& copy) : m_contents(copy.m_contents) {}
         StepList(const StepList::container_t& copy) : m_contents(copy) {}
+        StepList(const_iterator it1, const_iterator it2) : m_contents(it1.base(), it2.base()) {}
 
     private:
         container_t m_contents;
