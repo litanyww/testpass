@@ -98,12 +98,35 @@ namespace {
 #ifdef DEBUG
                 if (!it->operation().isValid(state))
                 {
-                    DBGOUT("ERROR: unexpectedly unable to apply solved state " << *it << " " << it->operation() << " onto " << state);
-                    throw WW::TestException("Unable to apply cheapest solution");
+                    std::ostringstream ost;
+
+                    attributes_t cr;
+
+                    attributes_t::find_changes(state, it->operation().dependencies(), cr);
+
+                    ost << "ERROR: unexpectedly unable to apply solved state " << *it << " " << it->operation() << " onto " << state << ".  Missing " << cr;
+                    throw WW::TestException(ost.str().c_str());
                 }
 #endif
                 it->operation().modify(state);
             }
+        }
+
+    int solve(const attributes_t& state, const attributes_t& target, const stepstore_t& steps, WW::StepList& out_result);
+    int
+        solveOrThrow(const attributes_t& state, const attributes_t& target, const stepstore_t& steps, WW::StepList& out_result)
+        {
+            int cost = solve(state, target, steps, out_result);
+            if (cost > 0 && out_result.empty()) {
+                attributes_t cr;
+
+                attributes_t::find_changes(state, target, cr);
+
+                std::ostringstream ost;
+                ost << "No solution, need these dependencies defined: " << cr << " to get from " << state << " to " << target;
+                throw WW::TestException(ost.str().c_str());
+            }
+            return cost;
         }
 
     /** solve
@@ -120,25 +143,23 @@ namespace {
             out_result.clear();
             // DBGOUT("solve(state=" << state << ", target=" << target);
             attributes_t changes_required;
-            attributes_t changes_to_discard;
-            attributes_t::find_changes(state, target, changes_required, changes_to_discard);
-            if (changes_required.size() == 0 && changes_to_discard.size() == 0)
+            attributes_t::find_changes(state, target, changes_required);
+            if (changes_required.size() == 0)
             {
                 return 0;
             }
-            WW::StepList candidates = findStepsProviding(steps, changes_required) + findStepsProviding(steps, changes_to_discard);
+            WW::StepList candidates = findStepsProviding(steps, changes_required);
             if (candidates.size() == 0)
             {
                 // This one is unusable
                 std::ostringstream ost;
-                ost << "No step defined which provides attributes " << changes_required << " and " << changes_to_discard;
+                ost << "No step defined which provides attributes " << changes_required;
                 return 99999;
             }
 
             int cost = 0;
             bool solved = false;
             attributes_t missing_attributes;
-            out_result.clear();
             for (WW::StepList::const_iterator it = candidates.begin(); it != candidates.end(); ++it)
             {
                 WW::StepList list;
@@ -146,23 +167,20 @@ namespace {
                 if (it->operation().isValid(state))
                 {
                     // we don't need to search, it is immediately valid
-                    list.push_back(&(*it));
                     outcome = it->cost();
                 }
                 else
                 {
-                    outcome = solve(state, it->operation().dependencies(), steps, list) + it->cost();
+                    outcome = it->cost() + solve(state, it->operation().dependencies(), steps, list);
                     if (outcome > 0 && list.empty()) {
                         // No solution was found
-                        attributes_t cr;
                         attributes_t cd;
-                        attributes_t::find_changes(state, it->operation().dependencies(), cr, cd);
+                        attributes_t::find_changes(state, it->operation().dependencies(), cd);
                         missing_attributes.insert(cd.begin(), cd.end());
-                        missing_attributes.insert(cr.begin(), cr.end());
                         continue;
                     }
-                    list.push_back(&(*it));
                 }
+                list.push_back(&(*it));
                 if (list.size() > 0 && (out_result.size() == 0 || outcome < cost))
                 {
                     solved = true;
@@ -173,14 +191,14 @@ namespace {
 
             if (!solved) {
                 std::ostringstream ost;
-                ost << "No solution for " << (changes_to_discard + changes_required) << ", missing attributes: " << missing_attributes;
-                throw WW::TestException(ost.str().c_str());
+                ost << "No solution for " << changes_required << ", missing attributes: " << missing_attributes;
+                // throw WW::TestException(ost.str().c_str());
+                return 1;
             }
 
-            if (out_result.size() == 0)
+            if (out_result.empty())
             {
-                DBGOUT("ERROR: Can't find changes for " << changes_required << changes_to_discard << " for state " << state);
-                return 0;
+                return 1;
             }
 
             // cheapest should at this point be a sequence starting from
@@ -190,7 +208,13 @@ namespace {
             attributes_t candidateState = state;
             applyState(candidateState, out_result);
             WW::StepList otherBits;
-            cost += solve(candidateState, target, steps, otherBits);
+            int solveCost = solve(candidateState, target, steps, otherBits);
+            if (solveCost > 0 && otherBits.empty()) {
+                // This solution doesn't work.
+                out_result.clear();
+                return 1;
+            }
+            cost += solveCost;
             out_result.splice(out_result.end(), otherBits);
             return cost;
         }
@@ -218,6 +242,9 @@ namespace {
                     applyState(state, solution);
                     append(out_result, solution);
                 }
+                else if (item_cost > 0) {
+                    return 0; // empty solution means failure
+                }
                 cost += it->cost();
                 it->operation().modify(state);
                 out_result.push_back(&(*it));
@@ -243,27 +270,35 @@ namespace {
             // changing nothing.  We just remember and subsequently return the
             // best insertion point.
 
-            for (WW::StepList::iterator it  = sequence.begin(); it != sequence.end(); ++it) {
+            for (WW::StepList::iterator it = sequence.begin(); it != sequence.end(); ++it) {
                 attributes_t state = accumulated_state;
                 int cost = accumulated_cost + solve(state, step.operation().dependencies(), steps, solution);
-                applyState(state, solution);
-                cost += step.cost();
-                step.operation().modify(state);
-                cost += solveForSequence(state, it, sequence.end(), steps, solution);
-                if (insert_before == sequence.end() || cost < cheapest) {
-                    cheapest = cost;
-                    insert_before = it;
+                if (cost == 0 || !solution.empty()) {
+                    applyState(state, solution);
+                    cost += step.cost();
+                    step.operation().modify(state);
+                    cost += solveForSequence(state, it, sequence.end(), steps, solution);
+                    if (!solution.empty() && (insert_before == sequence.end() || cost < cheapest)) {
+                        cheapest = cost;
+                        insert_before = it;
+                    }
                 }
-                accumulated_cost += solve(accumulated_state, it->operation().dependencies(), steps, solution);
-                accumulated_cost += it->cost();
+                {
+                    int cost = solveOrThrow(accumulated_state, it->operation().dependencies(), steps, solution);
+                    accumulated_cost += cost + it->cost();
+                }
                 applyState(accumulated_state, solution);
                 it->operation().modify(accumulated_state);
             }
             // We finally get to work out whether the best insertion point is right at the end.
-            accumulated_cost += solve(accumulated_state, step.operation().dependencies(), steps, solution);
-            accumulated_cost += step.cost();
-            if (accumulated_cost < cheapest) {
-                insert_before = sequence.end();
+            {
+                int cost = solve(accumulated_state, step.operation().dependencies(), steps, solution);
+                if (cost == 0 || !solution.empty()) {
+                    accumulated_cost += cost + step.cost();
+                    if (accumulated_cost < cheapest) {
+                        insert_before = sequence.end();
+                    }
+                }
             }
             return insert_before;
         }

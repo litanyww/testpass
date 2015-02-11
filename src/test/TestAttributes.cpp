@@ -309,15 +309,12 @@ TEST(TestAttributes, TestFindChanges)
     typedef WW::Attributes<std::string> attribute_t;
 
     attribute_t required;
-    attribute_t discard;
 
-    attribute_t::find_changes(attribute_t("one,two,three"), attribute_t("two,!three,four"), required, discard);
-    ASSERT_EQ(attribute_t("four"), required);
-    ASSERT_EQ(attribute_t("!three"), discard);
+    attribute_t::find_changes(attribute_t("one,two,three"), attribute_t("two,!three,four"), required);
+    ASSERT_EQ(attribute_t("four,!three"), required);
 
-    attribute_t::find_changes(attribute_t("one=1,two=2,three,four=4,five=5"), attribute_t("two=2,three=3,four=0x04,!five"), required, discard);
-    ASSERT_EQ(attribute_t("three=3,four=0x04"), required);
-    ASSERT_EQ(attribute_t("!three,!four=4,!five=5"), discard);
+    attribute_t::find_changes(attribute_t("one=1,two=2,three,four=4,five=5"), attribute_t("two=2,three=3,four=0x04,!five"), required);
+    ASSERT_EQ(attribute_t("three=3,four=0x04,!five=5"), required);
 }
 
 TEST(TestAttributes, EdgeCases)

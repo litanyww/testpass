@@ -184,10 +184,9 @@ namespace WW
                 return result;
             }
 
-            static void find_changes(const Attributes& state, const Attributes& target, Attributes& out_required, Attributes& out_discard)
+            static void find_changes(const Attributes& state, const Attributes& target, Attributes& out_result)
             {
-                out_required.clear();
-                out_discard.clear();
+                out_result.clear();
 
                 const_iterator end = target.end();
                 const_iterator notfound = state.end();
@@ -198,25 +197,31 @@ namespace WW
                     const_iterator match = state.m_contents.find(*t_it);
                     if (match == notfound) {
                         if (!forbidden) {
-                            out_required.insert(*t_it);
+                            out_result.insert(*t_it);
                         }
                     }
                     else if (match->value() != t_it->value()) { // compound
                         if (!forbidden) {
                             if (!match->isForbidden()) {
-                                out_discard.insert(value_type(match->value(), true));
-                                out_required.insert(*t_it);
+                                out_result.insert(*t_it);
                             }
                         }
                         else if (t_it->value().find('=') == value_type::value_type::npos) {
-                            out_discard.insert(value_type(match->value(), true));
+                            out_result.insert(value_type(match->value(), true));
                         }
                     }
                     else if (forbidden) // match, but now forbidden
                     {
-                        out_discard.forbid(t_it->value());
+                        out_result.forbid(t_it->value());
                     }
                 }
+            }
+
+            static Attributes find_changes(const Attributes& state, const Attributes& target)
+            {
+                Attributes result;
+                find_changes(state, target, result);
+                return result;
             }
 
             Attributes differences(const Attributes& attributes) const
