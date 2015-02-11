@@ -280,8 +280,14 @@ namespace {
             {
                 unsigned int percent = item++ * 100 / count;
                 std::cerr << "\b\b\b" << std::setw(2) << percent << "%";
-                WW::StepList::iterator insert_point = bestInsertionPoint(state, order, *it, steps);
-                order.insert(insert_point, *it);
+                try {
+                    WW::StepList::iterator insert_point = bestInsertionPoint(state, order, *it, steps);
+                    order.insert(insert_point, *it);
+                }
+                catch (...) {
+                    std::cerr << std::endl;
+                    throw;
+                }
             }
             std::cerr << "\b\b\bdone!" << std::endl;
             return solveForSequence(state, order.begin(), order.end(), steps, out_result);
