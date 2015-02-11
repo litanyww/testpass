@@ -26,7 +26,7 @@ namespace WW
                     typename _T::size_type offset = 0;
                     typename _T::size_type lhs_size = lhs.m_value.size();
                     typename _T::size_type rhs_size = rhs.m_value.size();
-                    typename _T::size_type len = lhs_size > rhs_size ? rhs_size : lhs_size;
+                    typename _T::size_type len = (lhs_size > rhs_size) ? rhs_size : lhs_size;
 
                     for (offset = 0; offset < len; ++offset) {
                         const typename _T::value_type lhs_c = lc[offset];
@@ -43,7 +43,7 @@ namespace WW
                     if (lhs_size == rhs_size) { // exactly the same, neither has '='
                         return false;
                     }
-                    if ((len == lhs_size) ? rc[len] : lc[len] == '=') { // compound prefix of one is same as entire other
+                    if (((len == lhs_size) ? rc[len] : lc[len]) == '=') { // compound prefix of one is same as entire other
                         return false;
                     }
                     return (len == lhs_size) ? true : false;

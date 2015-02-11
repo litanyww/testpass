@@ -319,3 +319,14 @@ TEST(TestAttributes, TestFindChanges)
     ASSERT_EQ(attribute_t("three=3,four=0x04"), required);
     ASSERT_EQ(attribute_t("!three,!four=4,!five=5"), discard);
 }
+
+TEST(TestAttributes, EdgeCases)
+{
+    typedef WW::Attributes<std::string> attribute_t;
+
+    attribute_t one("one1,one11");
+    ASSERT_EQ(static_cast<size_t>(2), one.size());
+    attribute_t two("one");
+    one.applyChanges(two);
+    ASSERT_EQ(attribute_t("one,one1,one11"), one);
+}
