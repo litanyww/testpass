@@ -23,7 +23,8 @@ namespace WW
     public:
         TestStep();
         ~TestStep();
-        TestStep(std::istream& ist);
+        explicit TestStep(std::istream& ist);
+        explicit TestStep(const std::string& ist);
         TestStep(const TestStep& copy);
         TestStep& operator=(const TestStep& copy);
 #if __cplusplus >= 201103L
@@ -52,6 +53,9 @@ namespace WW
     public:
         static attributes_t attribute_list(const std::string& text);
         static std::string strip(const std::string& text);
+
+    private:
+        void readStream(std::istream& ist);
 
     private:
         operation_t m_operation;

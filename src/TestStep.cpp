@@ -90,6 +90,18 @@ namespace {
     }
 }
 
+WW::TestStep::TestStep(const std::string& text)
+: m_operation()
+, m_cost(0)
+, m_required(true)
+, m_description()
+, m_short()
+, m_script()
+{
+    std::istringstream ist(text);
+    readStream(ist);
+}
+
 WW::TestStep::TestStep(std::istream& ist)
 : m_operation()
 , m_cost(0)
@@ -97,6 +109,12 @@ WW::TestStep::TestStep(std::istream& ist)
 , m_description()
 , m_short()
 , m_script()
+{
+    readStream(ist);
+}
+
+void
+WW::TestStep::readStream(std::istream& ist)
 {
     std::string line;
     while (ist) {
