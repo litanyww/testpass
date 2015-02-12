@@ -64,31 +64,16 @@ namespace {
         }
 }
 
-bool readFromChild(pid_t child, int fd, std::string& output)
+bool readFromChild(int fd, std::string& output)
 {
-    int waitFlags = WNOHANG;
-    for (;;) {
-        int status;
-        if (child == waitpid(child, &status, waitFlags)) {
-            if (WEXITSTATUS(status) != 0) {
-                std::cerr << "Script failed: " << WEXITSTATUS(status) << std::endl;
-                break;
-            }
-            return true;
-        }
-        char buf[4096];
-        ssize_t bytes = read(fd, buf, sizeof(buf));
-        if (bytes < 0) {
-            std::cerr << "ERROR: failed to get output from subprocess: " << strerror(errno) << std::endl;
-            break;
-        }
-        else if (bytes == 0) {
-            // Our pipe is no longer viable
-            waitFlags = 0; // waitpid now waits forever
-        }
-        else {
-            output.append(buf, bytes);
-        }
+    char buf[4096];
+    ssize_t bytes = read(fd, buf, sizeof(buf));
+    if (bytes < 0) {
+        std::cerr << "ERROR: failed to get output from subprocess: " << strerror(errno) << std::endl;
+    }
+    else if (bytes > 0) {
+        output.append(buf, bytes);
+        return true;
     }
     return false;
 }
@@ -98,20 +83,31 @@ WW::executeScript(const std::string& script, std::string output)
 {
     bool result = true;
     const std::string pathToScript = makeTempFileWithContent(script);
-    int pipe_fd[2];
-    if (pipe(pipe_fd) == -1)
+    int out_fd[2];
+    int err_fd[2];
+    if (pipe(out_fd) == -1)
     {
         std::cerr << "ERROR: failed to create pipe for output: " << strerror(errno) << std::endl;
         return false;
     }
+    if (pipe(err_fd) == -1)
+    {
+        close(out_fd[0]);
+        close(out_fd[1]);
+        std::cerr << "ERROR: failed to create pipe for stderr: " << strerror(errno) << std::endl;
+        return false;
+    }
+
     int child = fork();
     switch (child) {
         case 0: // child
             {
-                dup2(pipe_fd[1], 1);
-                dup2(pipe_fd[1], 2); // might be better to have separate stderr and stdout
-                close(pipe_fd[0]);
-                close(pipe_fd[1]);
+                dup2(out_fd[1], 1);
+                dup2(err_fd[1], 2); // might be better to have separate stderr and stdout
+                close(out_fd[0]);
+                close(out_fd[1]);
+                close(err_fd[0]);
+                close(err_fd[1]);
 
                 const std::string bashstr = "bash";
                 char* bash = const_cast<char*>(bashstr.c_str());
@@ -129,15 +125,75 @@ WW::executeScript(const std::string& script, std::string output)
                 return false;
             }
         default: // main process
-            close(pipe_fd[1]);
+            close(out_fd[1]);
+            close(err_fd[1]);
             break;
     }
 
-    if (!readFromChild(child, pipe_fd[0], output)) {
-        result = false;
+    int status = 0;
+    for (;;)
+    {
+        int waitflags = (out_fd[0] == -1 && err_fd[0] == -1) ? 0 : WNOHANG;
+        if (child == waitpid(child, &status, waitflags)) {
+            if (WEXITSTATUS(status) != 0) {
+                result = false;
+                std::cerr << "Script failed: " << WEXITSTATUS(status) << std::endl;
+                break;
+            }
+            return true;
+        }
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        int max = -1;
+        if (out_fd[0] != -1) {
+            FD_SET(out_fd[0], &readfds);
+            if (max < out_fd[0]) {
+                max = out_fd[0];
+            }
+        }
+        if (err_fd[0] != -1) {
+            FD_SET(err_fd[0], &readfds);
+            if (max < err_fd[0]) {
+                max = err_fd[0];
+            }
+        }
+
+        int count = select(max + 1, &readfds, 0, 0, NULL);
+        if (count > 0)
+        {
+            if (FD_ISSET(out_fd[0], &readfds)) {
+                std::string out;
+                if (!readFromChild(out_fd[0], out)) {
+                    close(out_fd[0]);
+                    out_fd[0] = -1;
+                }
+                else
+                {
+                    std::cout << out;
+                    output.append(out);
+                }
+            }
+            if (FD_ISSET(err_fd[0], &readfds)) {
+                std::string err;
+                if (!readFromChild(err_fd[0], err)) {
+                    close(err_fd[0]);
+                    err_fd[0] = -1;
+                }
+                else
+                {
+                    std::cerr << err;
+                    output.append(err);
+                }
+            }
+        }
     }
 
-    close(pipe_fd[0]);
+    if (out_fd[0] != -1) {
+        close(out_fd[0]);
+    }
+    if (err_fd[0] != -1) {
+        close(err_fd[0]);
+    }
     unlink(pathToScript.c_str());
 
     return result;
