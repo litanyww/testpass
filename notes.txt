@@ -237,3 +237,16 @@ readable, and also easily parsable.  It needs the following information:
  - note
 
 ShortDescription:1423020705:fs:Note about what happened.\n\nMultiple lines are available
+
+-----
+
+Unfortunately each required step and its dependencies are determined without
+consideration for previous and subsequent required steps.  To put this in
+context, we call solve with `state` and `target` states delimited by the
+context of the current required step.
+
+When we determine the insert location for each required step, we do calculate
+the cost of the remaining steps; but only do so for each remaining required
+step in isolation, meaning we don't iterate on remaining steps to determine
+whether one of the solutions for this step represents a superior solution when
+the entire remaining chain is taken into consideration.
