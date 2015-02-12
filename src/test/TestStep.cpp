@@ -6,6 +6,8 @@
 #include <gtest/gtest.h>
 
 #include "TestStep.h"
+#include "Steps.h"
+#include "TestException.h"
 
 #include <sstream>
 
@@ -92,4 +94,81 @@ TEST(TestStep, MultiLineDescription)
     ASSERT_EQ("NiceShortDescription", step.short_desc());
     ASSERT_EQ(description, step.description());
     ASSERT_EQ(static_cast<unsigned int>(3), step.cost());
+}
+
+TEST(TestStep, TestSolve)
+{
+    WW::Steps steps;
+    steps.setShowProgress(false);
+    steps.addStep(WW::TestStep(
+                "short: one\n"
+                "dependencies: two\n"
+                "cost: 1\n"
+                "required: yes\n"
+                "description: one\n"));
+    steps.addStep(WW::TestStep(
+                "short: three\n"
+                "dependencies: banana\n"
+                "changes: three\n"
+                "cost: 3\n"
+                "required: no\n"
+                "description: three\n"));
+    steps.addStep(WW::TestStep(
+                "short: two\n"
+                "changes: two\n"
+                "dependencies: three\n"
+                "required: no\n"
+                "cost: 2\n"
+                "description: two\n"));
+    WW::StepList solution = steps.calculate();
+    ASSERT_EQ(static_cast<size_t>(0), solution.size());
+
+    steps.setState(WW::TestStep::attributes_t("banana"));
+    solution = steps.calculate();
+    EXPECT_EQ(static_cast<size_t>(3), solution.size());
+    WW::StepList::const_iterator it = solution.begin();
+    ASSERT_EQ("three", it->short_desc());
+    ++it;
+    ASSERT_EQ("two", it->short_desc());
+    ++it;
+    ASSERT_EQ("one", it->short_desc());
+}
+
+TEST(TestStep, TestSolve2)
+{
+    WW::Steps steps;
+    steps.setShowProgress(false);
+    steps.addStep(WW::TestStep(
+                "short: one\n"
+                "dependencies: two,three\n"
+                "changes: !three\n"
+                "cost: 1\n"
+                "required: yes\n"
+                "description: one\n"));
+    steps.addStep(WW::TestStep(
+                "short: three\n"
+                "dependencies: banana\n"
+                "changes: three\n"
+                "cost: 3\n"
+                "required: no\n"
+                "description: three\n"));
+    steps.addStep(WW::TestStep(
+                "short: two\n"
+                "changes: two,!three\n"
+                "dependencies: three\n"
+                "required: no\n"
+                "cost: 2\n"
+                "description: two\n"));
+
+    steps.setState(WW::TestStep::attributes_t("banana"));
+    WW::StepList solution = steps.calculate();
+    EXPECT_EQ(static_cast<size_t>(4), solution.size());
+    WW::StepList::const_iterator it = solution.begin();
+    ASSERT_EQ("three", it->short_desc()) << "two depends on three";
+    ++it;
+    ASSERT_EQ("two", it->short_desc()) << "two unsets three";
+    ++it;
+    ASSERT_EQ("three", it->short_desc()) << "three is required again because two unset it";
+    ++it;
+    ASSERT_EQ("one", it->short_desc()) << "complete";
 }
