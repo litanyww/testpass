@@ -31,7 +31,7 @@ flags = [
 
 # std is required
 # clang won't know which language to use compiling headers
-'-std=c++11',
+'-std=c99',
 
 # '-x' and 'c++' also required
 # use 'c' for C projects
