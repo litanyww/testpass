@@ -43,6 +43,7 @@ namespace WW
         StepList calculate() const; // Generate the test pass
         StepList requiredSteps() const;
         const TestStep* step(const std::string& short_desc) const;
+        void setShowProgress(bool showProgress);
 
     private:
         class Impl;

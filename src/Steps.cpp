@@ -55,6 +55,7 @@ public:
     Impl()
         : m_startState()
         , m_allSteps()
+        , m_showProgress(true)
         {}
     ~Impl() {}
 
@@ -68,12 +69,14 @@ public:
     stepstore_t& allSteps() { return m_allSteps; }
     const stepstore_t& allSteps() const { return m_allSteps; }
     void setState(const attributes_t& state) { m_startState = state; }
+    void setShowProgress(bool showProgress) { m_showProgress = showProgress; }
 
     WW::StepList calculate() const;
 
 private:
     attributes_t m_startState;
     stepstore_t m_allSteps;
+    bool m_showProgress;
 };
 
 namespace {
@@ -304,27 +307,35 @@ namespace {
         }
 
     int
-        solveAll(const attributes_t& state, const WW::StepList& pending, const stepstore_t& steps, WW::StepList& out_result)
+        solveAll(const attributes_t& state, const WW::StepList& pending, const stepstore_t& steps, WW::StepList& out_result, bool showProgress = true)
         {
             WW::StepList order;
 
-            std::cerr << "Compiling:    ";
+            if (showProgress) {
+                std::cerr << "Compiling:    ";
+            }
             unsigned int count = pending.size();
             unsigned int item = 0;
             for (WW::StepList::const_iterator it = pending.begin(); it != pending.end(); ++it)
             {
                 unsigned int percent = item++ * 100 / count;
-                std::cerr << "\b\b\b" << std::setw(2) << percent << "%";
+                if (showProgress) {
+                    std::cerr << "\b\b\b" << std::setw(2) << percent << "%";
+                }
                 try {
                     WW::StepList::iterator insert_point = bestInsertionPoint(state, order, *it, steps);
                     order.insert(insert_point, *it);
                 }
                 catch (...) {
-                    std::cerr << std::endl;
+                    if (showProgress) {
+                        std::cerr << std::endl;
+                    }
                     throw;
                 }
             }
-            std::cerr << "\b\b\bdone!" << std::endl;
+            if (showProgress) {
+                std::cerr << "\b\b\bdone!" << std::endl;
+            }
             return solveForSequence(state, order.begin(), order.end(), steps, out_result);
         }
 
@@ -353,7 +364,7 @@ WW::Steps::Impl::calculate() const
     clone_required(m_allSteps, pending);
 
     attributes_t state = m_startState;
-    solveAll(state, pending, m_allSteps, chain);
+    solveAll(state, pending, m_allSteps, chain, m_showProgress);
     return chain;
 }
 
@@ -471,4 +482,10 @@ WW::Steps::step(const std::string& short_desc) const
         }
     }
     return 0;
+}
+
+void
+WW::Steps::setShowProgress(bool showProgress)
+{
+    m_pimpl->setShowProgress(showProgress);
 }
