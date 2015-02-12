@@ -229,7 +229,7 @@ namespace {
     int
         solveForSequence(const attributes_t& startState, WW::StepList::const_iterator begin, WW::StepList::const_iterator end, const stepstore_t& steps, WW::StepList& out_result)
         {
-            // DBGOUT("(" << count << ") solveAll(state=" << state << ", pending=" << pending << ", steps, out_result, count)");
+            // DBGOUT("solveForSequence(state=" << startState << ", begin=" << *begin << ", end, steps, out_result, count)");
             out_result.clear();
             attributes_t state = startState;
             int cost = 0;
