@@ -240,3 +240,89 @@ TEST(TestStep, MultiplexRequired)
     ++it;
     ASSERT_EQ("one", it->short_desc());
 }
+
+TEST(TestStep, TestOptimised)
+{
+    WW::Steps steps;
+    steps.setShowProgress(false);
+    steps.addStep(WW::TestStep(
+                "short: work\n"
+                "dependencies: prep\n"
+                "changes: !prep\n"
+                "cost: 1\n"
+                "required: yes\n"
+                "description: one\n"));
+    // Now the non-required steps we'll need to solve this
+    steps.addStep(WW::TestStep(
+                "short: simple\n"
+                "changes: prep\n"
+                "cost: 3\n"
+                "required: no\n"
+                "description: simple is more expensive long term, cheaper in the short term\n"));
+    steps.addStep(WW::TestStep(
+                "short: optimal\n"
+                "dependencies: setup\n"
+                "changes: prep\n"
+                "cost: 1\n"
+                "required: no\n"
+                "description: optimal is more expensive long term, cheaper in the short term\n"));
+    steps.addStep(WW::TestStep(
+                "short: setup\n"
+                "changes: setup\n"
+                "cost: 3\n"
+                "required: no\n"
+                "description: this step makes 'apple2' more expensive than 'apple1' the first time it is used\n"));
+
+    WW::StepList solution = steps.calculate();
+    EXPECT_EQ(static_cast<size_t>(2), solution.size());
+    WW::StepList::const_iterator it = solution.begin();
+    ASSERT_EQ("simple", it->short_desc()) << "Currently the simplest is best";
+    ++it;
+    ASSERT_EQ("work", it->short_desc()) << "three is required again because two unset it";
+
+    steps.addStep(WW::TestStep(
+                "short: moreWork\n"
+                "dependencies: prep\n"
+                "changes: !prep\n"
+                "cost: 1\n"
+                "required: yes\n"
+                "description: two\n"));
+
+    solution = steps.calculate();
+    EXPECT_EQ(static_cast<size_t>(5), solution.size());
+    it = solution.begin();
+    ASSERT_EQ("setup", it->short_desc()) << "It is now best to eat the expensive setup cost because it makes the subsequent steps cheaper";
+    ++it;
+    ASSERT_EQ("optimal", it->short_desc()) << "We can now use the optimal prep solution";
+    ++it;
+    ASSERT_EQ("moreWork", it->short_desc()) << "three is required again because two unset it";
+    ++it;
+    ASSERT_EQ("optimal", it->short_desc()) << "Again we can use the optimal prep";
+    ++it;
+    ASSERT_EQ("work", it->short_desc());
+
+    steps.addStep(WW::TestStep(
+                "short: evenMoreWork\n"
+                "dependencies: prep\n"
+                "changes: !prep\n"
+                "cost: 1\n"
+                "required: yes\n"
+                "description: three\n"));
+
+    solution = steps.calculate();
+    EXPECT_EQ(static_cast<size_t>(7), solution.size());
+    it = solution.begin();
+    ASSERT_EQ("setup", it->short_desc()) << "two depends on three";
+    ++it;
+    ASSERT_EQ("optimal", it->short_desc()) << "two unsets three";
+    ++it;
+    ASSERT_EQ("evenMoreWork", it->short_desc()) << "three is required again because two unset it";
+    ++it;
+    ASSERT_EQ("optimal", it->short_desc()) << "complete";
+    ++it;
+    ASSERT_EQ("moreWork", it->short_desc()) << "three is required again because two unset it";
+    ++it;
+    ASSERT_EQ("optimal", it->short_desc()) << "complete";
+    ++it;
+    ASSERT_EQ("work", it->short_desc()) << "three is required again because two unset it";
+}

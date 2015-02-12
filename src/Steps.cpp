@@ -164,6 +164,8 @@ namespace {
             return cost;
         }
 
+    int solveForSequence(const attributes_t& startState, WW::StepList::const_iterator begin, WW::StepList::const_iterator end, const stepstore_t& steps, WW::StepList& out_result, bool scanToEnd = false);
+
     /** solve
      * @params state        starting state
      * @params target       set of desired attributes
@@ -173,10 +175,10 @@ namespace {
      * Determine the cheapest set of steps to iterate from state to target.  This function will be called recursively
      */
     int
-        solve(const attributes_t& state, const attributes_t& target, const stepstore_t& steps, WW::StepList& out_result)
+        solve(const attributes_t& state, const attributes_t& target, const stepstore_t& steps, WW::StepList& out_result, WW::StepList::const_iterator chainStart, WW::StepList::const_iterator chainEnd)
         {
             out_result.clear();
-            // DBGOUT("solve(state=" << state << ", target=" << target);
+            // DBGOUT("solve(state=" << state << ", target=" << target << ", steps, out_result, chainStart, chainEnd) " << WW::StepList(chainStart, chainEnd));
             attributes_t changes_required;
             attributes_t::find_changes(state, target, changes_required);
             if (changes_required.size() == 0)
@@ -206,7 +208,7 @@ namespace {
                 }
                 else
                 {
-                    outcome = it->cost() + solve(state, it->operation().dependencies(), steps, list);
+                    outcome = it->cost() + solve(state, it->operation().dependencies(), steps, list, chainStart, chainEnd);
                     if (outcome > 0 && list.empty()) {
                         // No solution was found
                         attributes_t cd;
@@ -216,11 +218,41 @@ namespace {
                     }
                 }
                 list.push_back(&(*it));
-                if (list.size() > 0 && (out_result.size() == 0 || outcome < cost))
-                {
-                    solved = true;
-                    cost = outcome;
-                    out_result = list;
+
+                if (list.size() > 0) {
+                    if (chainStart != chainEnd) {
+                        // This isn't working because we are calculating the *dependencies* - we don't know the item to solve.  Can't do this here.
+                        attributes_t copy = state;
+                        applyState(copy, list);
+                        if (chainStart->operation().isValid(copy)) {
+                            // DBGOUT("  Solving remaining chain - cost=" << cost << ": " << list);
+                            WW::StepList tmp;
+                            cost += solveForSequence(copy, chainStart, chainEnd, steps, tmp, true);
+                            // DBGOUT("  Solved remaining chain - cost=" << cost << ": " << (list + tmp));
+                            // We want to see whether the solution satisfies target.
+                            // If it does, and if we have access to a list of remaining
+                            // elements, then we want to solve that list, to see
+                            // whether we can introduce a rule which will make that
+                            // subsequent chain even cheaper.  That remaining chain
+                            // need not be a full list; it could be just a fixed count,
+                            // an optimisation which ought to reduce the performance
+                            // overhead.
+
+                            // This function will all solveForSequence(), while that function
+                            // is still expected to call this one.  We need to limit
+                            // when this recursion happens, since in some cases we do
+                            // want it and in others it just isn't useful - or may even
+                            // be harmful.
+                            //
+                        }
+                    }
+
+                    if (list.size() > 0 && (out_result.size() == 0 || outcome < cost))
+                    {
+                        solved = true;
+                        cost = outcome;
+                        out_result = list;
+                    }
                 }
             }
 
@@ -251,7 +283,15 @@ namespace {
             }
             cost += solveCost;
             out_result.splice(out_result.end(), otherBits);
+            // DBGOUT("  solved: " << cost << ": " << out_result);
             return cost;
+        }
+
+    int
+        solve(const attributes_t& state, const attributes_t& target, const stepstore_t& steps, WW::StepList& out_result)
+        {
+            static WW::StepList dummy;
+            return solve(state, target, steps, out_result, dummy.end(), dummy.end());
         }
 
     void
@@ -262,15 +302,15 @@ namespace {
         }
 
     int
-        solveForSequence(const attributes_t& startState, WW::StepList::const_iterator begin, WW::StepList::const_iterator end, const stepstore_t& steps, WW::StepList& out_result)
+        solveForSequence(const attributes_t& startState, WW::StepList::const_iterator begin, WW::StepList::const_iterator end, const stepstore_t& steps, WW::StepList& out_result, bool scanToEnd)
         {
-            // DBGOUT("solveForSequence(state=" << startState << ", begin=" << *begin << ", end, steps, out_result, count)");
+            // DBGOUT("solveForSequence(state=" << startState << ", begin=" << *begin << ", end, steps, out_result, scanToEnd=" << scanToEnd << ") " << WW::StepList(begin, end));
             out_result.clear();
             attributes_t state = startState;
             int cost = 0;
             for (WW::StepList::const_iterator it = begin; it != end; ++it) {
                 WW::StepList solution;
-                int item_cost = solve(state, it->operation().dependencies(), steps, solution);
+                int item_cost = solve(state, it->operation().dependencies(), steps, solution, (scanToEnd ? it : end), end);
                 if (solution.size() > 0)
                 {
                     cost += item_cost;
@@ -368,7 +408,7 @@ namespace {
             if (showProgress) {
                 std::cerr << "\b\b\bdone!" << std::endl;
             }
-            return solveForSequence(state, order.begin(), order.end(), steps, out_result);
+            return solveForSequence(state, order.begin(), order.end(), steps, out_result, true);
         }
 
     void
