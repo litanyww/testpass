@@ -138,6 +138,7 @@ namespace WW
         bool empty() { return m_contents.empty(); }
 #if __cplusplus >= 201103L
         void splice(const_iterator __position, StepList&& __x) noexcept { m_contents.splice(__position.base(), __x.m_contents); }
+        void splice(const_iterator __position, StepList& __x) noexcept { m_contents.splice(__position.base(), __x.m_contents); }
 #else
         void splice(iterator __position, StepList& __x) { m_contents.splice(__position.base(), __x.m_contents); }
 #endif
