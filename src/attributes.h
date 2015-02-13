@@ -19,7 +19,7 @@ namespace WW
         public:
             typedef Attribute<_T> value_type;
             typedef typename value_type::size_type size_type;
-            typedef std::set<value_type, typename value_type::setCompare> container_t;
+            typedef std::set<value_type> container_t;
             typedef value_type& reference;
             typedef value_type* pointer;
             typedef typename container_t::const_iterator const_iterator;

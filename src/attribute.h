@@ -100,4 +100,10 @@ namespace WW
         }
 }
 
+namespace std
+{
+    template <typename _T>
+    struct less<WW::Attribute<_T> > : public WW::Attribute<_T>::setCompare {};
+}
+
 #endif // INCLUDE_WW_ATTRIBUTE_HEADER
