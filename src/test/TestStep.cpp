@@ -125,7 +125,7 @@ TEST(TestStep, TestSolve)
 
     steps.setState(WW::TestStep::attributes_t("banana"));
     solution = steps.calculate();
-    EXPECT_EQ(static_cast<size_t>(3), solution.size());
+    ASSERT_EQ(static_cast<size_t>(3), solution.size());
     WW::StepList::const_iterator it = solution.begin();
     ASSERT_EQ("three", it->short_desc());
     ++it;
@@ -162,7 +162,7 @@ TEST(TestStep, TestSolve2)
 
     steps.setState(WW::TestStep::attributes_t("banana"));
     WW::StepList solution = steps.calculate();
-    EXPECT_EQ(static_cast<size_t>(4), solution.size());
+    ASSERT_EQ(static_cast<size_t>(4), solution.size());
     WW::StepList::const_iterator it = solution.begin();
     ASSERT_EQ("three", it->short_desc()) << "two depends on three";
     ++it;
@@ -171,4 +171,72 @@ TEST(TestStep, TestSolve2)
     ASSERT_EQ("three", it->short_desc()) << "three is required again because two unset it";
     ++it;
     ASSERT_EQ("one", it->short_desc()) << "complete";
+}
+
+TEST(TestStep, MultiplexRequired)
+{
+    WW::Steps steps;
+    steps.setShowProgress(false);
+    steps.addStep(WW::TestStep(
+                "short: one\n"
+                "dependencies: two,three,four\n"
+                "changes: !three\n"
+                "cost: 1\n"
+                "required: yes\n"
+                "description: one\n"));
+    steps.addStep(WW::TestStep(
+                "short: two_one\n"
+                "changes: two=1\n"
+                "cost: 1\n"
+                "required: no\n"
+                "description: two\n"));
+    steps.addStep(WW::TestStep(
+                "short: two_two\n"
+                "changes: two=2\n"
+                "cost: 1\n"
+                "required: no\n"
+                "description: two\n"));
+    steps.addStep(WW::TestStep(
+                "short: three_one\n"
+                "changes: three=1\n"
+                "cost: 1\n"
+                "required: no\n"
+                "description: three\n"));
+    steps.addStep(WW::TestStep(
+                "short: three_two\n"
+                "changes: three=2\n"
+                "cost: 1\n"
+                "required: no\n"
+                "description: three\n"));
+    steps.addStep(WW::TestStep(
+                "short: four\n"
+                "changes: four\n"
+                "cost: 1\n"
+                "required: no\n"
+                "description: four\n"));
+
+    WW::StepList solution = steps.calculate();
+    ASSERT_EQ(static_cast<size_t>(11), solution.size());
+    WW::StepList::const_iterator it = solution.begin();
+    ASSERT_EQ("two_two", it->short_desc());
+    ++it;
+    ASSERT_EQ("three_two", it->short_desc());
+    ++it;
+    ASSERT_EQ("four", it->short_desc());
+    ++it;
+    ASSERT_EQ("one", it->short_desc());
+    ++it;
+    ASSERT_EQ("three_one", it->short_desc());
+    ++it;
+    ASSERT_EQ("one", it->short_desc());
+    ++it;
+    ASSERT_EQ("two_one", it->short_desc());
+    ++it;
+    ASSERT_EQ("three_two", it->short_desc());
+    ++it;
+    ASSERT_EQ("one", it->short_desc());
+    ++it;
+    ASSERT_EQ("three_one", it->short_desc());
+    ++it;
+    ASSERT_EQ("one", it->short_desc());
 }

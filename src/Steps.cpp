@@ -384,6 +384,117 @@ namespace {
                 }
             }
         }
+
+    compound_map_t
+        getCompoundAttributes(const stepstore_t& store)
+        {
+            compound_map_t result;
+            for (stepstore_t::const_iterator it_step = store.begin(); it_step != store.end(); ++it_step) {
+                const attributes_t& changes = it_step->operation().changes();
+                for (attributes_t::const_iterator it_change = changes.begin(); it_change != changes.end(); ++it_change) {
+                    const string_t& change = it_change->value();
+                    string_t::size_type pos = change.find('=');
+                    if (pos != string_t::npos) {
+                        string_t key = change.substr(0, pos);
+                        string_t value = change.substr(pos + 1);
+                        compound_attributes_t& item = result[key];
+                        item.insert(value);
+                    }
+                }
+            }
+            return result;
+        }
+
+    void
+        transferCompoundSteps(stepstore_t& store, stepstore_t& compound, const compound_map_t& map)
+        {
+            stepstore_t::iterator it = store.begin();
+            while (it != store.end()) {
+                const attributes_t& deps = it->operation().dependencies();
+                if (deps.empty()) {
+                    ++it;
+                    continue;
+                }
+                stepstore_t::iterator next = it;
+                ++next;
+                for (attributes_t::const_iterator it_deps = deps.begin(); it_deps != deps.end(); ++it_deps) {
+                    const string_t& deps = it_deps->value();
+                    string_t::size_type pos = deps.find('=');
+                    if (pos == string_t::npos) {
+                        if (map.find(deps) != map.end()) {
+                            compound.push_back(*it);
+                            next = store.erase(it);
+                            break;
+                        }
+                    }
+                }
+                it = next;
+            }
+        }
+
+    att_list_t
+        multiplexAttributes(const string_t& key, const compound_attributes_t& values, const att_list_t& src)
+        {
+            att_list_t result;
+
+            for (att_list_t::const_iterator it = src.begin(); it != src.end(); ++it) {
+                attributes_t attr = *it; // make a copy
+                attr.erase(key);
+                for (compound_attributes_t::const_iterator it = values.begin(); it != values.end(); ++it) {
+                    attributes_t copy(attr);
+                    copy.insert(key + "=" + *it);
+                    result.push_back(copy);
+                }
+            }
+            return result;
+        }
+
+    attributes_t
+        onlyCompoundAttributes(const attributes_t& atts, const compound_map_t& map)
+        {
+            attributes_t result;
+            for (attributes_t::const_iterator it = atts.begin(); it != atts.end(); ++it) {
+                if (map.find(it->value()) != map.end()) {
+                    result.insert(*it);
+                }
+            }
+            return result;
+        }
+
+    void
+        expandStep(stepstore_t& store, const WW::TestStep& step, const compound_map_t& cmap)
+        {
+            att_list_t deps;
+            attributes_t attributes = step.operation().dependencies();
+            deps.push_back(attributes);
+            attributes_t compound_atts = onlyCompoundAttributes(attributes, cmap);
+
+            for (attributes_t::const_iterator it = compound_atts.begin(); it != compound_atts.end(); ++it)
+            {
+                const string_t& value = it->value();
+                compound_map_t::const_iterator m_it = cmap.find(value);
+                if (m_it != cmap.end()) {
+                    const compound_attributes_t& comps = m_it->second;
+                    deps = multiplexAttributes(it->key(), comps, deps);
+                }
+            }
+            for (att_list_t::const_iterator it = deps.begin(); it != deps.end(); ++it) {
+                WW::TestStep copy = step;
+                copy.dependencies(*it);
+                store.push_back(copy);
+            }
+        }
+
+    void
+        expandCompoundAttributes(stepstore_t& store)
+        {
+            stepstore_t compound_steps;
+            compound_map_t map = getCompoundAttributes(store);
+            transferCompoundSteps(store, compound_steps, map);
+            for (stepstore_t::const_iterator it = compound_steps.begin(); it != compound_steps.end(); ++it) {
+                expandStep(store, *it, map);
+            }
+        }
 }
 
 WW::StepList
@@ -393,7 +504,10 @@ WW::Steps::Impl::calculate() const
 
     StepList pending;
     StepList chain;
-    clone_required(m_allSteps, pending);
+    stepstore_t steps = m_allSteps;
+
+    expandCompoundAttributes(steps);
+    clone_required(steps, pending);
 
     attributes_t state = m_startState;
     solveAll(state, pending, m_allSteps, chain, m_showProgress);
