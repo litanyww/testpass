@@ -66,6 +66,7 @@ namespace WW
             bool operator!=(const Attribute& rhs) const { return !(*this == rhs); }
 
         public:
+            _T key() const { typename _T::size_type pos = m_value.find("="); if (pos != _T::npos) { return m_value.substr(0, pos); } return m_value; }
             const _T& value() const { return m_value; }
             bool isForbidden() const { return m_forbidden; }
 
