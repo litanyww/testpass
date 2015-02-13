@@ -46,7 +46,7 @@ gtest-1.7.0/src/gtest-all.cc : gtest-1.7.0.zip
 $(OBJ_DIR)/src/test/%.d : src/test/%.cpp gtest-1.7.0/src/gtest-all.cc
 	@mkdir -p $(dir $@)
 	@set -e; rm -f $@; \
-		$(CXX) -M $(INCLUDES) $(CXXFLAGS) $< > $@.$$$$; \
+		$(CXX) -M $(INCLUDES) -Igtest-1.7.0/include $(filter-out -Weffc++,$(CXXFLAGS)) $< > $@.$$$$; \
 		sed 's,\($(notdir $*)\)\.o[ :]*,$(dir $@)$(notdir $*).o $@ : ,g' < $@.$$$$ > $@; \
 		rm -f $@.$$$$
 
