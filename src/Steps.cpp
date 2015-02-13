@@ -8,10 +8,13 @@
 #include "StepList.h"
 #include "TestException.h"
 
-#include <sstream>
 #include <deque>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
+#include <list>
+#include <set>
+#include <map>
+#include <sstream>
 
 #include <time.h>
 
@@ -19,32 +22,61 @@
 #define DBGOUT(_x) do { std::cerr << "DEBUG: " << _x << std::endl; } while (0)
 
 typedef WW::Steps::attributes_t attributes_t;
+typedef attributes_t::value_type::value_type string_t;
 typedef std::list<WW::TestStep> stepstore_t;
+typedef std::set<string_t> compound_attributes_t;
+typedef std::map<string_t, compound_attributes_t> compound_map_t;
+typedef std::list<attributes_t> att_list_t;
 
-inline attributes_t operator+(const attributes_t& lhs, const attributes_t& rhs) {
-    attributes_t result = lhs;
-    result.insert(rhs.begin(), rhs.end());
-    return result;
+template <typename Stream>
+Stream& operator<<(Stream& str, const compound_attributes_t& ob) {
+    str << "[";
+    bool comma = false;
+    for (compound_attributes_t::const_iterator it = ob.begin(); it != ob.end(); ++it) {
+        if (comma) {
+            str << ", ";
+        }
+        else {
+            comma = true;
+        }
+        str << *it;
+    }
+    str << "]";
+    return str;
 }
 
-namespace std
-{
-    std::ostream& operator<<(std::ostream& ost, const WW::StepList& list) {
-        ost << "[";
-        bool comma = false;
-        for (WW::StepList::const_iterator it = list.begin(); it != list.end(); ++it)
-        {
-            if (comma) {
-                ost << ", ";
-            }
-            else {
-                comma = true;
-            }
-            ost << *it;
+template <typename Stream>
+Stream& operator<<(Stream& str, const compound_map_t& ob) {
+    str << "[";
+    bool comma = false;
+    for (compound_map_t::const_iterator it = ob.begin(); it != ob.end(); ++it) {
+        if (comma) {
+            str << ", ";
         }
-        ost << "]";
-        return ost;
+        else {
+            comma = true;
+        }
+        str << it->first << " => " << it->second;
     }
+    str << "]";
+    return str;
+}
+
+template <typename Stream>
+Stream& operator<<(Stream& str, const att_list_t& ob) {
+    str << "[";
+    bool comma = false;
+    for (att_list_t::const_iterator it = ob.begin(); it != ob.end(); ++it) {
+        if (comma) {
+            str << ", ";
+        }
+        else {
+            comma = true;
+        }
+        str << *it;
+    }
+    str << "]";
+    return str;
 }
 
 class WW::Steps::Impl

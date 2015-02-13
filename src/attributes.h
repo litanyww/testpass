@@ -58,6 +58,7 @@ namespace WW
 #endif
 
         public:
+            bool empty() const { return m_contents.empty(); }
             size_type size() const { return m_contents.size(); }
             std::pair<iterator,bool> require(const _T& val) { return insert(value_type(val)); }
             std::pair<iterator,bool> forbid(const _T& val) { return insert(value_type(val, true)); }
@@ -290,6 +291,14 @@ namespace WW
             {
                 require(strip(element.substr(start)));
             }
+        }
+
+    template <typename _T>
+        Attributes<_T>
+        operator+(const Attributes<_T>& lhs, const Attributes<_T>& rhs) {
+            Attributes<_T> result = lhs;
+            result.insert(rhs.begin(), rhs.end());
+            return result;
         }
 
     template <class Stream, class _T>
