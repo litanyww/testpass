@@ -67,9 +67,7 @@ namespace {
                 std::ifstream ist(it->c_str());
                 if (ist.good())
                 {
-                    WW::TestStep step(ist);
-                    // std::cout << "File: " << *it << ": " << step << std::endl;
-                    out_steps.addStep(step);
+                    out_steps.addStep(ist);
                 }
             }
         }
@@ -104,35 +102,6 @@ namespace {
             return result;
         }
 
-    std::string
-        sanitize(const std::string& text)
-        {
-            std::ostringstream ost;
-            std::string::size_type pos;
-            std::string::size_type start = 0;
-            while ((pos = text.find_first_of("\n\t", start)) != std::string::npos)
-            {
-                if (pos > start) {
-                    ost << text.substr(start, pos - start);
-                }
-                switch (text[pos])
-                {
-                    case '\n':
-                        ost << "\\n";
-                        break;
-                    case '\t':
-                        ost << "\\t";
-                        break;
-                    default:
-                        std::cerr << "ERROR: unexpected code" << std::endl;
-                        break;
-                }
-                start = pos + 1;
-            }
-            ost << text.substr(start);
-            return ost.str();
-        }
-
     void
         write_log(std::ostream& ost, const WW::TestStep& step, const std::string& flags, const std::string& note, const WW::Steps::attributes_t& state)
         {
@@ -141,7 +110,7 @@ namespace {
             ost << step.short_desc() <<
                 ":" << when <<
                 ":" << flags <<
-                ":" << sanitize(note) <<
+                ":" << WW::sanitize(note) <<
                 std::endl <<
                 ":" << state <<
                 std::endl;

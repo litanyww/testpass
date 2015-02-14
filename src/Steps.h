@@ -28,6 +28,7 @@ namespace WW
 
     public:
         Steps();
+        Steps(std::istream& ist);
         ~Steps();
 
     private: // forbid copy and assignment
@@ -39,11 +40,16 @@ namespace WW
         void addRequired(const Steps& steps);
         void markNotRequired(const std::string& short_desc);
         void addStep(const TestStep& step);
+        void addStep(const std::string& step);
+        void addStep(std::istream& ist);
         void setState(const attributes_t& state);
         StepList calculate() const; // Generate the test pass
         StepList requiredSteps() const;
         const TestStep* step(const std::string& short_desc) const;
         void setShowProgress(bool showProgress);
+        size_t size() const;
+        const TestStep& front() const;
+        TestStep& front();
 
     private:
         class Impl;

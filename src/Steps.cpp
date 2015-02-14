@@ -98,6 +98,7 @@ private: // forbid copy and assignment
 public:
     void add(const Steps& steps, bool allAreRequired = false);
     void add(const TestStep& step);
+    void add(std::istream& str);
     stepstore_t& allSteps() { return m_allSteps; }
     const stepstore_t& allSteps() const { return m_allSteps; }
     void setState(const attributes_t& state) { m_startState = state; }
@@ -522,7 +523,7 @@ namespace {
                 compound_map_t::const_iterator m_it = cmap.find(value);
                 if (m_it != cmap.end()) {
                     const compound_attributes_t& comps = m_it->second;
-                    deps = multiplexAttributes(it->key(), comps, deps);
+                    deps = multiplexAttributes(((it->isForbidden()) ? "!" + it->key() : it->key()), comps, deps);
                 }
             }
             for (att_list_t::const_iterator it = deps.begin(); it != deps.end(); ++it) {
@@ -584,13 +585,128 @@ WW::Steps::Impl::add(const TestStep& step)
 {
     for (stepstore_t::iterator it = m_allSteps.begin(); it != m_allSteps.end(); ++it)
     {
-        if (it->short_desc() == step.short_desc())
+        if (it->short_desc() == step.short_desc() && it->operation().dependencies() == step.operation().dependencies())
         {
             m_allSteps.erase(it);
             break;
         }
     }
     m_allSteps.push_back(step);
+}
+
+void
+WW::Steps::Impl::add(std::istream& str)
+{
+    typedef std::list<attributes_t::value_type> _att_t;
+    _att_t dependencies;
+    attributes_t changes;
+    std::string description;
+    std::string short_desc;
+    std::string script;
+    int cost = 0;
+    bool isRequired = false;
+
+    std::string line;
+    while (str) {
+        std::getline(str, line);
+        strings_t x = split(line, ':', 2);
+        if (x.size() == 2)
+        {
+            std::string key(x[0]);
+            std::string value(strip(x[1]));
+
+            if (value == ":")
+            {
+                value.clear();
+                while (str) {
+                    std::getline(str, line);
+                    if (strip(line) == ".") {
+                        break;
+                    }
+                    if (value.size() > 0) {
+                        value.append("\n");
+                    }
+                    if (!strip(line).empty()) {
+                        value.append(line);
+                    }
+                }
+            }
+            if (key == "dependencies" || key == "requirements")
+            {
+                std::string::size_type start = 0;
+                std::string::size_type pos = value.find(',');
+                while (pos != std::string::npos)
+                {
+                    dependencies.push_back(strip(value.substr(start, pos - start)));
+                    start = pos + 1;
+                    pos = value.find(',', start);
+                }
+                dependencies.push_back(strip(value.substr(start)));
+            }
+            else if (key == "changes")
+            {
+                changes = attributes_t(value);
+            }
+            else if (key == "required")
+            {
+                isRequired = textToBoolean(strip(value));
+            }
+            else if (key == "description")
+            {
+                description = strip(value);
+            }
+            else if (key == "short")
+            {
+                short_desc = strip(value);
+            }
+            else if (key == "script")
+            {
+                script = strip(value);
+            }
+            else if (key == "cost")
+            {
+                cost = atol(strip(value).c_str());
+            }
+            else
+            {
+                std::cerr << "ERROR: unrecognized token '" << key << "'" << std::endl;
+            }
+        }
+    }
+    // dependencies contains something like [[one],[fruit=apple],[fruit=pear][dog=corgi][dog=spaniel]]
+    // the above will turn into four steps
+    compound_map_t map;
+    attributes_t deps;
+    attributes_t compound;
+    for (_att_t::const_iterator it = dependencies.begin(); it != dependencies.end(); ++it) {
+        attributes_t::value_type nonCompound(it->key(), it->isForbidden());
+        if (it->isCompound()) {
+            map[it->key()].insert(it->compoundValue());
+            compound.insert(nonCompound);
+        }
+        deps.insert(nonCompound);
+    }
+    att_list_t multiplexed;
+    multiplexed.push_back(deps);
+    for (attributes_t::const_iterator it = compound.begin(); it != compound.end(); ++it) {
+        const string_t& value = it->value();
+        compound_map_t::const_iterator m_it = map.find(value);
+        if (m_it != map.end()) {
+            const compound_attributes_t& comps = m_it->second;
+            multiplexed = multiplexAttributes(((it->isForbidden()) ? "!" + it->key() : it->key()), comps, multiplexed);
+        }
+    }
+    for (att_list_t::const_iterator it = multiplexed.begin(); it != multiplexed.end(); ++it) {
+        WW::TestStep step;
+        step.short_desc(short_desc);
+        step.dependencies(*it);
+        step.changes(changes);
+        step.required(isRequired);
+        step.cost(cost);
+        step.description(description);
+        step.script(script);
+        add(step);
+    }
 }
 
 ///
@@ -602,6 +718,12 @@ WW::Steps::Steps()
 {
 }
 
+WW::Steps::Steps(std::istream& str)
+: m_pimpl(new Impl)
+{
+    m_pimpl->add(str);
+}
+
 WW::Steps::~Steps()
 {
     delete m_pimpl;
@@ -611,6 +733,19 @@ void
 WW::Steps::addStep(const TestStep& step)
 {
     m_pimpl->add(step);
+}
+
+void
+WW::Steps::addStep(const std::string& step)
+{
+    std::istringstream ist(step);
+    m_pimpl->add(ist);
+}
+
+void
+WW::Steps::addStep(std::istream& str)
+{
+    m_pimpl->add(str);
 }
 
 WW::StepList
@@ -681,4 +816,22 @@ void
 WW::Steps::setShowProgress(bool showProgress)
 {
     m_pimpl->setShowProgress(showProgress);
+}
+
+size_t
+WW::Steps::size() const
+{
+    return m_pimpl->allSteps().size();
+}
+
+const WW::TestStep&
+WW::Steps::front() const
+{
+    return m_pimpl->allSteps().front();
+}
+
+WW::TestStep&
+WW::Steps::front()
+{
+    return m_pimpl->allSteps().front();
 }

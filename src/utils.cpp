@@ -8,6 +8,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -238,4 +239,66 @@ WW::externalEditor(const std::string contentToEdit)
     std::string result = readFileContent(file);
     unlink(file.c_str());
     return result;
+}
+
+std::string
+WW::sanitize(const std::string& text)
+{
+    std::ostringstream ost;
+    std::string::size_type pos;
+    std::string::size_type start = 0;
+    while ((pos = text.find_first_of("\n\t", start)) != std::string::npos)
+    {
+        if (pos > start) {
+            ost << text.substr(start, pos - start);
+        }
+        switch (text[pos])
+        {
+            case '\n':
+                ost << "\\n";
+                break;
+            case '\t':
+                ost << "\\t";
+                break;
+            default:
+                std::cerr << "ERROR: unexpected code" << std::endl;
+                break;
+        }
+        start = pos + 1;
+    }
+    ost << text.substr(start);
+    return ost.str();
+}
+
+
+WW::strings_t
+WW::split(const std::string& text, char ch, size_t max_split)
+{
+    // 1,3
+    strings_t result;
+    std::string::size_type start = 0;
+    std::string::size_type pos = text.find(ch);
+    while (pos != std::string::npos && max_split-- > 1)
+    {
+        result.push_back(text.substr(start, pos - start));
+        start = pos + 1;
+        pos = text.find(ch, start);
+    }
+    result.push_back(text.substr(start));
+    return result;
+}
+
+std::string
+WW::toLower(const std::string& text)
+{
+    std::string result = text;
+    std::transform(result.begin(), result.begin(), result.end(), tolower);
+    return result;
+}
+
+bool
+WW::textToBoolean(const std::string& text)
+{
+    std::string lcText(toLower(text));
+    return text == "1" || text == "true" || text == "yes";
 }

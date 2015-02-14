@@ -15,7 +15,7 @@ TEST(TestStep, LoadFromStream)
 {
     std::istringstream ist(""
             "short:NiceShortDescription\n"
-            "dependencies:installed,onaccess,OAexclusion=/tmp/excluded/eicar.com,haveEicar=/tmp/excluded/eicar.com\n"
+            "dependencies:one,!two,fruit=banana,!hat=trilby\n"
             "changes:awesomeness,!fear\n"
             "cost:2\n"
             "required:yes\n"
@@ -31,7 +31,9 @@ TEST(TestStep, LoadFromStream)
     ASSERT_EQ(static_cast<unsigned int>(2), step.cost());
     ASSERT_TRUE(step.required());
     ASSERT_EQ(static_cast<size_t>(2), step.operation().changes().size());
+    ASSERT_EQ(WW::TestStep::value_type("awesomeness,!fear"), step.operation().changes());
     ASSERT_EQ(static_cast<size_t>(4), step.operation().dependencies().size());
+    ASSERT_EQ(WW::TestStep::value_type("one,!two,fruit=banana,!hat=trilby"), step.operation().dependencies());
 }
 
 TEST(TestStep, LoadFromStreamWithSpaces)
@@ -325,4 +327,46 @@ TEST(TestStep, TestOptimised)
     ASSERT_EQ("optimal", it->short_desc()) << "complete";
     ++it;
     ASSERT_EQ("work", it->short_desc()) << "three is required again because two unset it";
+}
+
+TEST(TestStep, TestMultipleCompoundDeps)
+{
+    WW::Steps steps;
+    steps.setShowProgress(false);
+    steps.addStep( // addStep now takes stream or string, since it needs to multiplex steps
+                "short: one\n"
+                "dependencies: two=apple,two=banana\n"
+                "cost: 1\n"
+                "required: yes\n"
+                "description: one\n");
+    steps.addStep( // addStep now takes stream or string, since it needs to multiplex steps
+                "short: apple\n"
+                "changes: two=apple\n"
+                "cost: 2\n"
+                "required: no\n"
+                "description: apple\n");
+    steps.addStep( // addStep now takes stream or string, since it needs to multiplex steps
+                "short: banana\n"
+                "changes: two=banana\n"
+                "cost: 3\n"
+                "required: no\n"
+                "description: banana\n");
+    steps.addStep( // addStep now takes stream or string, since it needs to multiplex steps
+                "short: pear\n"
+                "changes: two=pear\n"
+                "cost: 1\n"
+                "required: no\n"
+                "description: pear\n");
+
+    WW::StepList solution = steps.calculate();
+    ASSERT_EQ(static_cast<size_t>(4), solution.size());
+    WW::StepList::const_iterator it = solution.begin();
+    ASSERT_EQ("banana", it->short_desc());
+    ++it;
+    ASSERT_EQ("one", it->short_desc());
+    ++it;
+    ASSERT_EQ("apple", it->short_desc());
+    ++it;
+    ASSERT_EQ("one", it->short_desc());
+    ++it;
 }

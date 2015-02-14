@@ -53,7 +53,16 @@ namespace WW
         public:
             ~Attribute() {}
             Attribute() : m_value(), m_forbidden(false) {}
-            Attribute(const _T& value) : m_value(value), m_forbidden(false) {}
+            Attribute(const _T& value) : m_value(), m_forbidden(false) {
+                if (value[0] == '!') {
+                    m_value = value.substr(1);
+                    m_forbidden = true;
+                }
+                else {
+                    m_value = value;
+                    m_forbidden = false;
+                }
+            }
             Attribute(const _T& value, bool forbidden) : m_value(value), m_forbidden(forbidden) {}
             Attribute(const Attribute& copy) : m_value(copy.m_value), m_forbidden(copy.m_forbidden) {}
             Attribute& operator=(const Attribute& copy) { m_value = copy.m_value; m_forbidden = copy.m_forbidden; return *this; }
@@ -67,8 +76,10 @@ namespace WW
 
         public:
             _T key() const { typename _T::size_type pos = m_value.find("="); if (pos != _T::npos) { return m_value.substr(0, pos); } return m_value; }
+            _T compoundValue() const { typename _T::size_type pos = m_value.find("="); if (pos != _T::npos) { return m_value.substr(pos + 1); } return _T(); }
             const _T& value() const { return m_value; }
             bool isForbidden() const { return m_forbidden; }
+            bool isCompound() const { typename _T::size_type pos = m_value.find("="); return pos != _T::npos; }
 
         private:
             _T m_value;
