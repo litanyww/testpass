@@ -752,7 +752,7 @@ WW::StepList
 WW::Steps::calculate() const
 {
     StepList chain = m_pimpl->calculate();
-    return StepList(chain);
+    return chain;
 }
 
 void

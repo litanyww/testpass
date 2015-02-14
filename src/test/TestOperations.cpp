@@ -64,7 +64,7 @@ TEST(TestOperation, ModifyAttributes)
 
     std::ostringstream ost;
     ost << op;
-    ASSERT_EQ("[requirement:!four,one,three,two,changes:five,four,!three,!two]", ost.str()) << "Operation can be streamed";
+    ASSERT_EQ("[requirement:[!four,one,three,two],changes:[five,four,!three,!two]]", ost.str()) << "Operation can be streamed";
 }
 
 TEST(TestOperation, GetDifferences)

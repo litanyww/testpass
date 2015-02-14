@@ -65,7 +65,7 @@ namespace WW
             const Attributes<_T>& changes = ob.changes();
             if (deps.size() > 0)
             {
-                ost << "requirement:" << deps;
+                ost << "requirement:[" << deps << "]";
                 comma = true;
             }
             if (changes.size() > 0)
@@ -74,7 +74,7 @@ namespace WW
                 {
                     ost << ',';
                 }
-                ost << "changes:" << changes;
+                ost << "changes:[" << changes << "]";
             }
             ost << "]";
 
