@@ -308,9 +308,16 @@ namespace {
             out_result.clear();
             attributes_t state = startState;
             int cost = 0;
+            WW::StepList::const_iterator scanEnd = begin;
+            for (int i = 0 ; (i < 15) && scanEnd != end ; ++i) {
+                ++scanEnd;
+            }
             for (WW::StepList::const_iterator it = begin; it != end; ++it) {
+                if (scanEnd != end) {
+                    ++scanEnd;
+                }
                 WW::StepList solution;
-                int item_cost = solve(state, it->operation().dependencies(), steps, solution, (scanToEnd ? it : end), end);
+                int item_cost = solve(state, it->operation().dependencies(), steps, solution, (scanToEnd ? it : scanEnd), scanEnd);
                 if (solution.size() > 0)
                 {
                     cost += item_cost;
