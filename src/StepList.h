@@ -217,6 +217,39 @@ namespace WW
             ost << "]";
             return ost;
         }
+
+}
+
+inline WW::StepList::const_iterator
+operator+(WW::StepList::const_iterator it, int count)
+{
+    if (count > 0) {
+        while (--count > 0) {
+            ++it;
+        }
+    }
+    else if (count < 0) {
+        while (++count < 0) {
+            --it;
+        }
+    }
+    return it;
+}
+
+inline WW::StepList::const_iterator
+operator-(WW::StepList::const_iterator it, int count)
+{
+    if (count > 0) {
+        while (--count > 0) {
+            --it;
+        }
+    }
+    else if (count < 0) {
+        while (++count < 0) {
+            ++it;
+        }
+    }
+    return it;
 }
 
 template <class Iter>
