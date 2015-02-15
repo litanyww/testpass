@@ -108,7 +108,7 @@ public:
 
 private:
     attributes_t m_startState;
-    stepstore_t m_allSteps;
+    mutable stepstore_t m_allSteps;
     bool m_showProgress;
 };
 
@@ -552,10 +552,9 @@ WW::Steps::Impl::calculate() const
 
     StepList pending;
     StepList chain;
-    stepstore_t steps = m_allSteps;
 
-    expandCompoundAttributes(steps);
-    clone_required(steps, pending);
+    expandCompoundAttributes(m_allSteps);
+    clone_required(m_allSteps, pending);
 
     attributes_t state = m_startState;
     solveAll(state, pending, m_allSteps, chain, m_showProgress);
