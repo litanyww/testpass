@@ -188,13 +188,13 @@ TEST(TestStep, MultiplexRequired)
                 "description: one\n"));
     steps.addStep(WW::TestStep(
                 "short: two_one\n"
-                "changes: two=1\n"
+                "changes: two=1,pizza\n"
                 "cost: 1\n"
                 "required: no\n"
                 "description: two\n"));
     steps.addStep(WW::TestStep(
                 "short: two_two\n"
-                "changes: two=2\n"
+                "changes: two=2,bicycle\n"
                 "cost: 1\n"
                 "required: no\n"
                 "description: two\n"));
@@ -264,7 +264,7 @@ TEST(TestStep, TestOptimised)
     steps.addStep(WW::TestStep(
                 "short: optimal\n"
                 "dependencies: setup\n"
-                "changes: prep\n"
+                "changes: prep, potato\n"
                 "cost: 1\n"
                 "required: no\n"
                 "description: optimal is more expensive long term, cheaper in the short term\n"));
@@ -341,19 +341,19 @@ TEST(TestStep, TestMultipleCompoundDeps)
                 "description: one\n");
     steps.addStep( // addStep now takes stream or string, since it needs to multiplex steps
                 "short: apple\n"
-                "changes: two=apple\n"
+                "changes: two=apple,glass\n"
                 "cost: 2\n"
                 "required: no\n"
                 "description: apple\n");
     steps.addStep( // addStep now takes stream or string, since it needs to multiplex steps
                 "short: banana\n"
-                "changes: two=banana\n"
+                "changes: two=banana,bridge\n"
                 "cost: 3\n"
                 "required: no\n"
                 "description: banana\n");
     steps.addStep( // addStep now takes stream or string, since it needs to multiplex steps
                 "short: pear\n"
-                "changes: two=pear\n"
+                "changes: deckchair, two=pear\n"
                 "cost: 1\n"
                 "required: no\n"
                 "description: pear\n");
