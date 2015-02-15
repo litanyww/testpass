@@ -46,6 +46,9 @@ namespace WW
         StepList calculate() const; // Generate the test pass
         StepList requiredSteps() const;
         const TestStep* step(const std::string& short_desc) const;
+        TestStep* step(const std::string& short_desc);
+        const TestStep* step(const std::string& short_desc, const TestStep::value_type& state) const;
+        TestStep* step(const std::string& short_desc, const TestStep::value_type& state);
         void setShowProgress(bool showProgress);
         size_t size() const;
         const TestStep& front() const;

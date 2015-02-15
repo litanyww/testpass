@@ -790,6 +790,11 @@ WW::Steps::requiredSteps() const
     return result;
 }
 
+/** Marks all steps with the short description as not-required
+ * @param short_desc    short description to mark as not required
+ *
+ * The short description is not unique due to compound attribute expansion
+ */
 void
 WW::Steps::markNotRequired(const std::string& short_desc)
 {
@@ -798,11 +803,22 @@ WW::Steps::markNotRequired(const std::string& short_desc)
         if (it->short_desc() == short_desc)
         {
             it->required(false);
-            break;
         }
     }
 }
 
+WW::TestStep*
+WW::Steps::step(const std::string& short_desc)
+{
+    stepstore_t& store = m_pimpl->allSteps();
+
+    for (stepstore_t::iterator it = store.begin(); it != store.end(); ++it) {
+        if (it->short_desc() == short_desc) {
+            return &(*it);
+        }
+    }
+    return 0;
+}
 const WW::TestStep*
 WW::Steps::step(const std::string& short_desc) const
 {
@@ -810,6 +826,32 @@ WW::Steps::step(const std::string& short_desc) const
 
     for (stepstore_t::const_iterator it = store.begin(); it != store.end(); ++it) {
         if (it->short_desc() == short_desc) {
+            return &(*it);
+        }
+    }
+    return 0;
+}
+
+const WW::TestStep*
+WW::Steps::step(const std::string& short_desc, const TestStep::value_type& state) const
+{
+    const stepstore_t& store = m_pimpl->allSteps();
+
+    for (stepstore_t::const_iterator it = store.begin(); it != store.end(); ++it) {
+        if (it->short_desc() == short_desc && it->operation().isValid(state)) {
+            return &(*it);
+        }
+    }
+    return 0;
+}
+
+WW::TestStep*
+WW::Steps::step(const std::string& short_desc, const TestStep::value_type& state)
+{
+    stepstore_t& store = m_pimpl->allSteps();
+
+    for (stepstore_t::iterator it = store.begin(); it != store.end(); ++it) {
+        if (it->short_desc() == short_desc && it->operation().isValid(state)) {
             return &(*it);
         }
     }

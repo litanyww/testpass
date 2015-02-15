@@ -122,10 +122,10 @@ namespace {
             write_log(ost, step, flags, note, state);
         }
 
-    strings_t
-        read_log(const std::string& logFile, WW::Steps::attributes_t& state)
+    WW::Steps::attributes_t
+        read_log(const std::string& logFile, WW::Steps& steps)
         {
-            strings_t result;
+            WW::Steps::attributes_t state;
             std::ifstream ifs(logFile.c_str());
             std::string text;
 
@@ -138,12 +138,16 @@ namespace {
                         state = WW::Steps::attributes_t(text.substr(1));
                     }
                     else {
-                        result.push_back(text.substr(0, colon));
+                        std::string short_desc = text.substr(0, colon);
+                        WW::TestStep* step = steps.step(short_desc, state);
+                        if (step != 0) {
+                            step->required(false);
+                        }
                     }
                 }
             }
 
-            return result;
+            return state;
         }
 
     void
@@ -247,26 +251,21 @@ int main(int argc, char* argv[])
     }
 
     WW::StepList solution;
-    WW::StepList requiredSteps;
+    WW::StepList requiredSteps = steps.requiredSteps();
 
     if (interactive_mode) {
-        WW::Steps::attributes_t logState;
-        strings_t nonRequiredTests = read_log(logFile, logState);
-        for (strings_t::const_iterator it = nonRequiredTests.begin(); it != nonRequiredTests.end(); ++it) {
-            steps.markNotRequired(*it);
-
-        }
+        WW::Steps::attributes_t logState = read_log(logFile, steps);
 
         if (state.size() == 0) {
             state = logState;
         }
+        requiredSteps = steps.requiredSteps();
     }
 
     steps.setState(state);
 
     try
     {
-        requiredSteps = steps.requiredSteps();
         solution = steps.calculate();
     } catch (WW::TestException& e)
     {
