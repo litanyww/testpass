@@ -593,6 +593,8 @@ WW::Steps::Impl::add(const TestStep& step)
     m_allSteps.push_back(step);
 }
 
+/* Can result in multiple TestSteps, where there are multiple compound dependencies
+ */
 void
 WW::Steps::Impl::add(std::istream& str)
 {
