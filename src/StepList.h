@@ -152,8 +152,8 @@ namespace WW
 #else
         iterator insert(iterator pos, const value_type& val) { return iterator(m_contents.insert(pos.base(), &val)); }
 #endif
-        const_iterator find(const_reference val) const { return std::find(m_contents.begin(), m_contents.end(), &val); }
-        iterator find(reference val) { return std::find(m_contents.begin(), m_contents.end(), &val); }
+        const_iterator find(const_reference val) const { return std::find(begin(), end(), val); }
+        iterator find(reference val) { return std::find(begin(), end(), val); }
         void append(const StepList& steps) {
             for (container_t::const_iterator it = steps.m_contents.begin(); it != steps.m_contents.end(); ++it) {
                 m_contents.push_back(*it);

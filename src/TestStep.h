@@ -50,6 +50,12 @@ namespace WW
         const std::string& script() const { return m_script; }
         std::string script(const std::string& value) { std::string result = m_script; m_script = value; return result; }
 
+        bool operator==(const TestStep& rhs) const {
+            return (m_short == rhs.m_short
+                    && m_operation.dependencies() == rhs.m_operation.dependencies());
+        }
+        bool operator!=(const TestStep& rhs) const { return !(*this == rhs); }
+
     public:
         static attributes_t attribute_list(const std::string& text);
         static std::string strip(const std::string& text);

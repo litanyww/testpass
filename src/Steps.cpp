@@ -776,8 +776,11 @@ WW::Steps::setState(const attributes_t& state)
 WW::StepList
 WW::Steps::requiredSteps() const
 {
+    stepstore_t& steps = m_pimpl->allSteps();
+    expandCompoundAttributes(steps);
+
     StepList result;
-    for (stepstore_t::const_iterator it = m_pimpl->allSteps().begin(); it != m_pimpl->allSteps().end(); ++it)
+    for (stepstore_t::const_iterator it = steps.begin(); it != steps.end(); ++it)
     {
         if (it->required()) {
             result.push_back(&(*it));

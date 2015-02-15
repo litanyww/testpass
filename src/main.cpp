@@ -94,8 +94,7 @@ namespace {
         {
             bool result = false;
             WW::StepList::iterator it = list.find(step);
-            if (it != list.end())
-            {
+            if (it != list.end()) {
                 result = true;
                 list.erase(it);
             }
@@ -267,8 +266,8 @@ int main(int argc, char* argv[])
 
     try
     {
-        solution = steps.calculate();
         requiredSteps = steps.requiredSteps();
+        solution = steps.calculate();
     } catch (WW::TestException& e)
     {
         std::cerr << "ERROR: " << e.what() << std::endl;
@@ -284,6 +283,7 @@ int main(int argc, char* argv[])
     std::cout << "dump of plan: " << std::endl;
     unsigned int item = 0;
 
+    WW::StepList requiredCopy = requiredSteps;
     for (WW::StepList::const_iterator it = solution.begin(); it != solution.end(); ++it)
     {
         bool hasScript = false;
@@ -292,7 +292,7 @@ int main(int argc, char* argv[])
             hasScript = true;
         }
         char dot = hasScript ? '*' : '.';
-        char space = isFirstRequired(*it, requiredSteps) ? '>' : ' ';
+        char space = isFirstRequired(*it, requiredCopy) ? '>' : ' ';
         std::cout << ++item << dot << space << it->short_desc() << std::endl;
     }
 
