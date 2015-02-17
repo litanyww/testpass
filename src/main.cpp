@@ -3,8 +3,6 @@
 // Sophos is a registered trademark of Sophos Limited and Sophos Group.
 //
 
-#include <gtest/gtest.h>
-
 #include "Steps.h"
 #include "TestException.h"
 
