@@ -17,7 +17,7 @@ TEST_DEPS = $(TEST_OBJS:%.o=%.d)
 
 INCLUDE_DIRS = src
 
-CFLAGS = -g
+CFLAGS = -O3
 CXX = g++
 CXXFLAGS = $(CFLAGS) -Wall -Weffc++
 INCLUDES =  $(addprefix -I,$(INCLUDE_DIRS))
