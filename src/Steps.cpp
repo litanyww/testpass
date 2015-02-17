@@ -121,7 +121,7 @@ namespace {
         {
             if (it->operation().changes().containsAny(attributes))
             {
-                result.push_back(&(*it));
+                result.push_back(*it);
             }
         }
         return result;
@@ -218,7 +218,7 @@ namespace {
                         continue;
                     }
                 }
-                list.push_back(&(*it));
+                list.push_back(*it);
 
                 if (list.size() > 0) {
                     if (chainStart != chainEnd) {
@@ -298,7 +298,7 @@ namespace {
     void
         append(WW::StepList& dst, const WW::StepList& src) {
             for (WW::StepList::const_iterator it = src.begin(); it != src.end(); ++it) {
-                dst.push_back(&(*it));
+                dst.push_back(*it);
             }
         }
 
@@ -330,7 +330,7 @@ namespace {
                 }
                 cost += it->cost();
                 it->operation().modify(state);
-                out_result.push_back(&(*it));
+                out_result.push_back(*it);
             }
             return cost;
         }
@@ -428,7 +428,7 @@ namespace {
                 const WW::TestStep& step = *it;
                 if (step.required())
                 {
-                    list.push_back(&step);
+                    list.push_back(step);
                 }
             }
         }
@@ -784,7 +784,7 @@ WW::Steps::requiredSteps() const
     for (stepstore_t::const_iterator it = steps.begin(); it != steps.end(); ++it)
     {
         if (it->required()) {
-            result.push_back(&(*it));
+            result.push_back(*it);
         }
     }
     return result;

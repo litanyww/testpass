@@ -146,7 +146,7 @@ namespace WW
         size_type size() const { return m_contents.size(); }
         void erase(iterator position) { m_contents.erase(position.base()); }
         void erase(iterator first, iterator last) { m_contents.erase(first.base(), last.base()); }
-        void push_back(pointer val) { m_contents.push_back(val); }
+        void push_back(reference val) { m_contents.push_back(&val); }
 #if __cplusplus >= 201103L
         iterator insert(const_iterator pos, const value_type& val) { return iterator(m_contents.insert(pos.base(), &val)); }
 #else
@@ -185,7 +185,7 @@ namespace WW
 
     inline StepList operator+(const StepList& lhs, const TestStep& val) {
         StepList result = lhs;
-        result.push_back(&val);
+        result.push_back(val);
         return result;
     }
 

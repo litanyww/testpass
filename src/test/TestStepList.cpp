@@ -15,7 +15,7 @@ TEST(TestStepList, TestList)
 
     WW::TestStep step;
     step.short_desc("TestCase");
-    list.push_back(&step);
+    list.push_back(step);
     ASSERT_EQ(static_cast<size_t>(1), list.size());
     WW::StepList::const_iterator it = list.begin();
     ASSERT_EQ("TestCase", it->short_desc());
