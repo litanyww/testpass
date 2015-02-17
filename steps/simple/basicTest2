@@ -1,0 +1,6 @@
+short: basicTest2
+dependencies: prerequisite
+changes: !prerequisite
+cost: 1
+required: yes
+description: Another test which relies on the 'prerequisite' state.

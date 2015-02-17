@@ -1,0 +1,5 @@
+short: testVariant
+dependencies: variant
+cost: 1
+required: yes
+description: Test to be run on each variant

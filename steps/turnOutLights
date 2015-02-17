@@ -1,0 +1,5 @@
+short: turnOutLights
+changes: !light
+cost: 2
+required: no
+description: Turn out the lights

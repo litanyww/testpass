@@ -1,0 +1,6 @@
+short: setVariantTwo
+changes: variant=two
+cost: 1
+required: no
+description: set the variant to 'two'
+script: echo "set variant=two"

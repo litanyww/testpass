@@ -1,0 +1,8 @@
+short: setPrerequisite
+changes: prerequisite
+cost: 1
+required: no
+description: set up prerequisite
+script::
+echo "set prerequisite"
+.

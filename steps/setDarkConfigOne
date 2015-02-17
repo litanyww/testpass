@@ -1,0 +1,6 @@
+short: darkConfigOne
+dependencies: !light
+changes: darkConfig=one
+cost: 1
+required: no
+description: set darkConfig=one

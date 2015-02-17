@@ -1,0 +1,5 @@
+short: turnOnLights
+changes: light
+cost: 3
+required: no
+description: Turn the lights on

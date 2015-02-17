@@ -1,0 +1,14 @@
+short: testDarkConfigInLight
+dependencies: darkConfig=one, darkConfig=two, light
+cost: 1
+required: yes
+description::
+This test is run twice, once for when darkConfig=one, and again for
+darkConfig=two.  It is *not* run for darkConfig=three, although that compound
+value is set.
+
+Also note that while it requires the state 'light', the steps which provide
+this state do not allow for it.  You'll see that because we have steps to both
+enable and disable light, a sensible test pass can still be constructed and it
+will select an optimal set of steps to configure the necessary prerequisites.
+.

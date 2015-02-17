@@ -1,0 +1,11 @@
+short: basicTest
+dependencies: prerequisite
+changes: !prerequisite
+cost: 1
+required: yes
+description::
+This is a simple test which has a single prerequisite.
+
+Note that the prerequisite is undone after this test case is executed, so the
+next test case which depends on that prerequisite will need to set it up again.
+.

@@ -1,0 +1,9 @@
+short: setDarkConfigThree
+dependencies: !light
+changes: darkConfig=three
+cost: 1
+required: no
+description:
+set darkConfig=three
+
+Note that this test step is never expected to be executed.
