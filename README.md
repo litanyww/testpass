@@ -84,7 +84,7 @@ is exactly what you'll want.
 
 ## Advantages
 
- - Test steps are simple text files, and can be managed using VCS tools -
+ - Test steps are simple text files, and can be managed using VCS tools;
    potentially alongside your source.
  - Test steps can be partially or fully automated.
  - Test dependencies need only be defined once, and will automatically be
@@ -103,6 +103,29 @@ is exactly what you'll want.
  - The system state is included in the log file, but can be overridden when
    restarting a test pass.
 
+## Order of Test Steps in a Test Pass
+
+The tool makes an effort to choose steps and order them to minimise the amount
+of work involved.
+
+The cost field can be instrumental in constructing the best possible test pass.
+For example, you might have a required test step as well as a non-required step
+which duplicates the same functionality but is 'cheaper'.  In this case make
+sure that the cheaper function has a lower cost.  The required step will still
+be used once, but everywhere else where the same changes are needed, the tool
+will pick the cheapest.
+
+This is true for combinations too.  Say you have a simple prerequisite test
+step which takes some time to complete, but there is an alternate step that is
+much cheaper but which requires an expensive one-off setup.  The `testpass`
+tool will use the simple step in preference to the cheaper one if the overall
+cost of the simple steps remains cheaper; but once it becomes cost effective to
+employ the expensive setup step, the tool can be expected to do just that.
+
+Some effort is made to balance the time taken to calculate the test pass versus
+the how optimal the result will be.  Please let me know if you find that the
+solution takes too long to generate, or it has made non-optimal choices.
+
 ## Example test case
 
 ```
@@ -118,3 +141,38 @@ script::
 echo "this is a script"
 .
 ```
+
+## The testpass executable
+
+````
+ $ ./testpass --help
+Usage: testpass [OPTIONS]... DIRECTORY...
+Construct a test pass based on test pass fragments which are loaded from the
+specified directories
+
+Options:
+ -s CONDITIONS  specify the starting state
+ -r DIRECTORY   specify directory containing required tests
+ -i LOGFILE	    interactive mode
+````
+
+Say you have a test case hierarchy in the 'steps' directory, and you wish to
+construct a test pass which will run every test step in the 'steps/req' folder.
+All other 'required' test steps will be demoted to non-required.  Your log of testing progress will be written to the file 'log':
+
+```
+./testpass steps -r steps/req -i log
+```
+
+If you quit the test run, then want to resume it, simply run the above command
+again.  If however you need to override the system state with the attributes
+'installed', 'active' and 'variant=awesome', you could do so like this:
+
+```
+./testpass steps -r steps/req -i log -s installed,active,variant=awesome
+```
+
+Each time you run the `testpass` tool, it regenerates the steps which make up
+the test pass, so it will always make an effort to select an optimal order.
+Therefore, you can add and remove required step directories at any time and
+still get an optimised test plan.
